@@ -15,10 +15,13 @@
 ## Free Software Foundation, Inc.,
 ## 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-SUBDIRS = coreutils \
-          fstools \
-          procps \
-          sysvinit \
-          util-linux
+if ENABLE_FSTOOLS
 
-noinst_HEADERS = wrapper.h
+noinst_HEADERS = fstool.h
+
+sbin_PROGRAMS = chxid
+
+chxid_SOURCES = chxid.c
+chxid_LDADD = $(VSERVER_LIBS) $(LUCID_LIBS)
+
+endif

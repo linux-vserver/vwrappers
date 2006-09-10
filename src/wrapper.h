@@ -37,7 +37,30 @@
 
 static char vdir[PATH_MAX];
 
-static
+void err(const char *msg, ...)
+{
+	va_list ap;
+	va_start(ap, msg);
+	
+	vdprintf(STDERR_FILENO, msg, ap);
+	dprintf(STDERR_FILENO, "\n");
+	
+	va_end(ap);
+}
+
+void perr(const char *msg, ...)
+{
+	char *errstr = strerror(errno);
+	
+	va_list ap;
+	va_start(ap, msg);
+	
+	vdprintf(STDERR_FILENO, msg, ap);
+	dprintf(STDERR_FILENO, ": %s\n", errstr);
+	
+	va_end(ap);
+}
+
 void die(const char *msg, ...)
 {
 	va_list ap;
@@ -50,7 +73,6 @@ void die(const char *msg, ...)
 	exit(EXIT_FAILURE);
 }
 
-static
 void pdie(const char *msg, ...)
 {
 	char *errstr = strerror(errno);
@@ -65,7 +87,6 @@ void pdie(const char *msg, ...)
 	exit(EXIT_FAILURE);
 }
 
-static
 void lookup_vdir(xid_t xid)
 {
 	int p[2], fd, status;
@@ -149,7 +170,7 @@ int default_wrapper(int argc, char **argv, char *proc, int needxid)
 		argv[0] = proc;
 	}
 	
-	if (needxid && xid < 2)
+	if (needxid && (xid < 2 || xid > 65535))
 		die("xid must be between 2 and 65535");
 	
 	if (xid > 1) {

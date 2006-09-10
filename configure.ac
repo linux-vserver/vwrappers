@@ -47,6 +47,17 @@ AC_ARG_ENABLE([coreutils],
               [enable_coreutils=true])
 AM_CONDITIONAL(ENABLE_COREUTILS, test x$enable_coreutils = xtrue)
 
+AC_ARG_ENABLE([fstools],
+              [AC_HELP_STRING([--disable-fstools],
+                              [Disable the filesystem tools])],
+              [case "${enableval}" in
+                yes) enable_fstools=true;;
+                no)  enable_fstools=false;;
+                *)   AC_MSG_ERROR(bad value ${enableval} for --enable-fstools);;
+              esac],
+              [enable_fstools=true])
+AM_CONDITIONAL(ENABLE_FSTOOLS, test x$enable_fstools = xtrue)
+
 AC_ARG_ENABLE([procps],
               [AC_HELP_STRING([--disable-procps],
                               [Disable the procps wrappers])],
@@ -120,6 +131,7 @@ AC_CONFIG_COMMANDS_PRE([SUMMARY="$PACKAGE_STRING configured successfully:
 # Output
 AC_CONFIG_FILES([Makefile
                  src/coreutils/Makefile
+                 src/fstools/Makefile
                  src/procps/Makefile
                  src/sysvinit/Makefile
                  src/util-linux/Makefile
