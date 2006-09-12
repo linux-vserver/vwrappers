@@ -15,8 +15,14 @@
 // Free Software Foundation, Inc.,
 // 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-#include "wrapper.h"
+#ifndef _WRAPPER_H
+#define _WRAPPER_H
 
-const char *rcsid = "$Id$";
+int default_wrapper(int argc, char **argv, char *proc, int needxid);
 
-DEFAULT_WRAPPER("/usr/bin/w", 0)
+#define DEFAULT_WRAPPER(PROC, NEEDXID) \
+int main(int argc, char **argv) { \
+	return default_wrapper(argc, argv, PROC, NEEDXID); \
+}
+
+#endif

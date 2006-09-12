@@ -15,6 +15,8 @@
 // Free Software Foundation, Inc.,
 // 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-#include "../wrapper.h"
+#include "wrapper.h"
+
+const char *rcsid = "$Id$";
 
 DEFAULT_WRAPPER("/sbin/killall5", 1)

@@ -32,7 +32,7 @@
 #include <vserver.h>
 #include <lucid/log.h>
 
-static const char *rcsid = "$Id";
+static const char *rcsid = "$Id$";
 
 static void *inotable = NULL;
 
@@ -85,7 +85,7 @@ int handle_file(const char *fpath, const struct stat *sb,
 	iattr.filename = fpath + ftwb->base;
 	
 	if (vx_get_iattr(&iattr) == -1) {
-		log_error("vx_get_iattr(%s): %m", fpath);
+		log_perror("vx_get_iattr(%s)", fpath);
 		errcnt++;
 	}
 	
@@ -99,7 +99,7 @@ int handle_file(const char *fpath, const struct stat *sb,
 		}
 		
 		if (tsearch(&sb->st_ino, &inotable, inocmp) == NULL) {
-			log_error("tsearch(%u): %m", sb->st_ino);
+			log_perror("tsearch(%u)", sb->st_ino);
 			errcnt++;
 		}
 	}

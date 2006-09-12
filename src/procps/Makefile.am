@@ -17,6 +17,8 @@
 
 if ENABLE_PROCPS
 
+INCLUDES = -I$(top_srcdir)/src/wrapper
+
 sbin_PROGRAMS = vfuser \
                 vkillall \
                 vpgrep \
@@ -30,40 +32,42 @@ sbin_PROGRAMS = vfuser \
                 vuptime \
                 vw
 
+WRAPPER_LIBS = $(top_builddir)/src/wrapper/libwrapper.a
+
 vfuser_SOURCES = vfuser.c
-vfuser_LDADD = $(VSERVER_LIBS) $(LUCID_LIBS)
+vfuser_LDADD = $(VSERVER_LIBS) $(LUCID_LIBS) $(WRAPPER_LIBS)
 
 vkillall_SOURCES = vkillall.c
-vkillall_LDADD = $(VSERVER_LIBS) $(LUCID_LIBS)
+vkillall_LDADD = $(VSERVER_LIBS) $(LUCID_LIBS) $(WRAPPER_LIBS)
 
 vpgrep_SOURCES = vpgrep.c
-vpgrep_LDADD = $(VSERVER_LIBS) $(LUCID_LIBS)
+vpgrep_LDADD = $(VSERVER_LIBS) $(LUCID_LIBS) $(WRAPPER_LIBS)
 
 vpkill_SOURCES = vpkill.c
-vpkill_LDADD = $(VSERVER_LIBS) $(LUCID_LIBS)
+vpkill_LDADD = $(VSERVER_LIBS) $(LUCID_LIBS) $(WRAPPER_LIBS)
 
 vpmap_SOURCES = vpmap.c
-vpmap_LDADD = $(VSERVER_LIBS) $(LUCID_LIBS)
+vpmap_LDADD = $(VSERVER_LIBS) $(LUCID_LIBS) $(WRAPPER_LIBS)
 
 vps_SOURCES = vps.c
 vps_LDADD = $(VSERVER_LIBS) $(LUCID_LIBS)
 
 vpstree_SOURCES = vpstree.c
-vpstree_LDADD = $(VSERVER_LIBS) $(LUCID_LIBS)
+vpstree_LDADD = $(VSERVER_LIBS) $(LUCID_LIBS) $(WRAPPER_LIBS)
 
 vskill_SOURCES = vskill.c
-vskill_LDADD = $(VSERVER_LIBS) $(LUCID_LIBS)
+vskill_LDADD = $(VSERVER_LIBS) $(LUCID_LIBS) $(WRAPPER_LIBS)
 
 vsnice_SOURCES = vsnice.c
-vsnice_LDADD = $(VSERVER_LIBS) $(LUCID_LIBS)
+vsnice_LDADD = $(VSERVER_LIBS) $(LUCID_LIBS) $(WRAPPER_LIBS)
 
 vtop_SOURCES = vtop.c
-vtop_LDADD = $(VSERVER_LIBS) $(LUCID_LIBS)
+vtop_LDADD = $(VSERVER_LIBS) $(LUCID_LIBS) $(WRAPPER_LIBS)
 
 vuptime_SOURCES = vuptime.c
-vuptime_LDADD = $(VSERVER_LIBS) $(LUCID_LIBS)
+vuptime_LDADD = $(VSERVER_LIBS) $(LUCID_LIBS) $(WRAPPER_LIBS)
 
 vw_SOURCES = vw.c
-vw_LDADD = $(VSERVER_LIBS) $(LUCID_LIBS)
+vw_LDADD = $(VSERVER_LIBS) $(LUCID_LIBS) $(WRAPPER_LIBS)
 
 endif

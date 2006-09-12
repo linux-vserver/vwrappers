@@ -89,7 +89,7 @@ int main(int argc, char **argv)
 			
 			case 'f':
 				if (flist32_from_str(optarg, iattr_list, &args.flags, &args.mask, '~', ',') == -1)
-					log_error_and_die("flist32_from_str: %m");
+					log_perror_and_die("flist32_from_str");
 				
 				break;
 				

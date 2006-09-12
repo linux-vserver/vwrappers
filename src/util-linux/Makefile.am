@@ -17,6 +17,8 @@
 
 if ENABLE_UTIL_LINUX
 
+INCLUDES = -I$(top_srcdir)/src/wrapper
+
 sbin_PROGRAMS = vdmesg \
                 vipcrm \
                 vipcs \
@@ -24,20 +26,22 @@ sbin_PROGRAMS = vdmesg \
                 vrenice \
                 vumount
 
+WRAPPER_LIBS = $(top_builddir)/src/wrapper/libwrapper.a
+
 vdmesg_SOURCES = vdmesg.c
-vdmesg_LDADD = $(VSERVER_LIBS) $(LUCID_LIBS)
+vdmesg_LDADD = $(VSERVER_LIBS) $(LUCID_LIBS) $(WRAPPER_LIBS)
 
 vipcrm_SOURCES = vipcrm.c
-vipcrm_LDADD = $(VSERVER_LIBS) $(LUCID_LIBS)
+vipcrm_LDADD = $(VSERVER_LIBS) $(LUCID_LIBS) $(WRAPPER_LIBS)
 
 vipcs_SOURCES = vipcs.c
-vipcs_LDADD = $(VSERVER_LIBS) $(LUCID_LIBS)
+vipcs_LDADD = $(VSERVER_LIBS) $(LUCID_LIBS) $(WRAPPER_LIBS)
 
 vmount_SOURCES = vmount.c
 vmount_LDADD = $(VSERVER_LIBS) $(LUCID_LIBS)
 
 vrenice_SOURCES = vrenice.c
-vrenice_LDADD = $(VSERVER_LIBS) $(LUCID_LIBS)
+vrenice_LDADD = $(VSERVER_LIBS) $(LUCID_LIBS) $(WRAPPER_LIBS)
 
 vumount_SOURCES = vumount.c
 vumount_LDADD = $(VSERVER_LIBS) $(LUCID_LIBS)

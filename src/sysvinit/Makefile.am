@@ -17,6 +17,8 @@
 
 if ENABLE_SYSVINIT
 
+INCLUDES = -I$(top_srcdir)/src/wrapper
+
 sbin_PROGRAMS = vhalt \
                 vkillall5 \
                 vlastb \
@@ -28,34 +30,36 @@ sbin_PROGRAMS = vhalt \
                 vshutdown \
                 vtelinit
 
+WRAPPER_LIBS = $(top_builddir)/src/wrapper/libwrapper.a
+
 vhalt_SOURCES = vhalt.c
-vhalt_LDADD = $(VSERVER_LIBS) $(LUCID_LIBS)
+vhalt_LDADD = $(VSERVER_LIBS) $(LUCID_LIBS) $(WRAPPER_LIBS)
 
 vkillall5_SOURCES = vkillall5.c
-vkillall5_LDADD = $(VSERVER_LIBS) $(LUCID_LIBS)
+vkillall5_LDADD = $(VSERVER_LIBS) $(LUCID_LIBS) $(WRAPPER_LIBS)
 
 vlastb_SOURCES = vlastb.c
-vlastb_LDADD = $(VSERVER_LIBS) $(LUCID_LIBS)
+vlastb_LDADD = $(VSERVER_LIBS) $(LUCID_LIBS) $(WRAPPER_LIBS)
 
 vlast_SOURCES = vlast.c
-vlast_LDADD = $(VSERVER_LIBS) $(LUCID_LIBS)
+vlast_LDADD = $(VSERVER_LIBS) $(LUCID_LIBS) $(WRAPPER_LIBS)
 
 vpidof_SOURCES = vpidof.c
-vpidof_LDADD = $(VSERVER_LIBS) $(LUCID_LIBS)
+vpidof_LDADD = $(VSERVER_LIBS) $(LUCID_LIBS) $(WRAPPER_LIBS)
 
 vpoweroff_SOURCES = vpoweroff.c
-vpoweroff_LDADD = $(VSERVER_LIBS) $(LUCID_LIBS)
+vpoweroff_LDADD = $(VSERVER_LIBS) $(LUCID_LIBS) $(WRAPPER_LIBS)
 
 vreboot_SOURCES = vreboot.c
-vreboot_LDADD = $(VSERVER_LIBS) $(LUCID_LIBS)
+vreboot_LDADD = $(VSERVER_LIBS) $(LUCID_LIBS) $(WRAPPER_LIBS)
 
 vrunlevel_SOURCES = vrunlevel.c
-vrunlevel_LDADD = $(VSERVER_LIBS) $(LUCID_LIBS)
+vrunlevel_LDADD = $(VSERVER_LIBS) $(LUCID_LIBS) $(WRAPPER_LIBS)
 
 vshutdown_SOURCES = vshutdown.c
-vshutdown_LDADD = $(VSERVER_LIBS) $(LUCID_LIBS)
+vshutdown_LDADD = $(VSERVER_LIBS) $(LUCID_LIBS) $(WRAPPER_LIBS)
 
 vtelinit_SOURCES = vtelinit.c
-vtelinit_LDADD = $(VSERVER_LIBS) $(LUCID_LIBS)
+vtelinit_LDADD = $(VSERVER_LIBS) $(LUCID_LIBS) $(WRAPPER_LIBS)
 
 endif

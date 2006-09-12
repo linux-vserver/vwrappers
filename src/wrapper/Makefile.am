@@ -15,9 +15,8 @@
 ## Free Software Foundation, Inc.,
 ## 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-SUBDIRS = wrapper \
-          coreutils \
-          fstools \
-          procps \
-          sysvinit \
-          util-linux
+noinst_HEADERS = wrapper.h
+
+noinst_LIBRARIES = libwrapper.a
+
+libwrapper_a_SOURCES = wrapper.c

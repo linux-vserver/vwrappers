@@ -17,25 +17,29 @@
 
 if ENABLE_COREUTILS
 
+INCLUDES = -I$(top_srcdir)/src/wrapper
+
 sbin_PROGRAMS = vdf \
                 vdu \
                 vuname \
                 vusers \
                 vwho
 
+WRAPPER_LIBS = $(top_builddir)/src/wrapper/libwrapper.a
+
 vdf_SOURCES = vdf.c
-vdf_LDADD = $(VSERVER_LIBS) $(LUCID_LIBS)
+vdf_LDADD = $(VSERVER_LIBS) $(LUCID_LIBS) $(WRAPPER_LIBS)
 
 vdu_SOURCES = vdu.c
 vdu_LDADD = $(VSERVER_LIBS) $(LUCID_LIBS)
 
 vuname_SOURCES = vuname.c
-vuname_LDADD = $(VSERVER_LIBS) $(LUCID_LIBS)
+vuname_LDADD = $(VSERVER_LIBS) $(LUCID_LIBS) $(WRAPPER_LIBS)
 
 vusers_SOURCES = vusers.c
-vusers_LDADD = $(VSERVER_LIBS) $(LUCID_LIBS)
+vusers_LDADD = $(VSERVER_LIBS) $(LUCID_LIBS) $(WRAPPER_LIBS)
 
 vwho_SOURCES = vwho.c
-vwho_LDADD = $(VSERVER_LIBS) $(LUCID_LIBS)
+vwho_LDADD = $(VSERVER_LIBS) $(LUCID_LIBS) $(WRAPPER_LIBS)
 
 endif

@@ -35,7 +35,7 @@
 
 int error_mode = 0, fxid = -1;
 
-static const char *rcsid = "$Id: vps.c 315 2006-08-05 21:43:43Z coloss $";
+static const char *rcsid = "$Id$";
 
 static
 struct option long_opts[] = {
@@ -158,7 +158,7 @@ int main(int argc, char **argv)
 	
 	switch ((pid = fork())) {
 	case -1:
-		log_error_and_die("fork: %m");
+		log_perror_and_die("fork");
 	
 	case 0:
 		fd = open_read("/dev/null");
@@ -171,14 +171,14 @@ int main(int argc, char **argv)
 		close(fd);
 		
 		if (vx_migrate(1, NULL) == -1)
-			log_error_and_die("vx_migrate: %m");
+			log_perror_and_die("vx_migrate");
 		
 		if (fxid >= 0) {
 			if (execvp(nargv[0], nargv) == -1)
-				log_error_and_die("execvp: %m");
+				log_perror_and_die("execvp");
 		} else {
 			if (execvp(argv[0], argv) == -1)
-				log_error_and_die("execvp: %m");
+				log_perror_and_die("execvp");
 		}
 	
 	default:
@@ -186,7 +186,7 @@ int main(int argc, char **argv)
 		
 		for (i = 0; ; i++) {
 			if ((len = io_read_eol(p[0], &line)) == -1)
-				log_error_and_die("io_read_eol: %m");
+				log_perror_and_die("io_read_eol");
 			
 			if (!len)
 				break;
@@ -200,7 +200,7 @@ int main(int argc, char **argv)
 		close(p[0]);
 		
 		if (waitpid(pid, &status, 0) == -1)
-			log_error_and_die("waitpid: %m");
+			log_perror_and_die("waitpid");
 	}
 	
 	exit(EXIT_SUCCESS);

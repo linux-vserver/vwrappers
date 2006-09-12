@@ -135,6 +135,7 @@ AC_CONFIG_FILES([Makefile
                  src/procps/Makefile
                  src/sysvinit/Makefile
                  src/util-linux/Makefile
+                 src/wrapper/Makefile
                  src/Makefile])
 
 AC_OUTPUT

@@ -64,7 +64,7 @@ int handle_file(const char *fpath, const struct stat *sb,
 		iattr.flags = 0;
 	
 	if (vx_set_iattr(&iattr) == -1) {
-		log_error("vx_set_iattr(%s): %m", fpath);
+		log_perror("vx_set_iattr(%s)", fpath);
 		errcnt++;
 	}
 	
