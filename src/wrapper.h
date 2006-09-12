@@ -33,60 +33,12 @@
 #include <sys/wait.h>
 #include <lucid/chroot.h>
 #include <lucid/io.h>
+#include <lucid/log.h>
 #include <lucid/open.h>
 
 static char vdir[PATH_MAX];
 
-void err(const char *msg, ...)
-{
-	va_list ap;
-	va_start(ap, msg);
-	
-	vdprintf(STDERR_FILENO, msg, ap);
-	dprintf(STDERR_FILENO, "\n");
-	
-	va_end(ap);
-}
-
-void perr(const char *msg, ...)
-{
-	char *errstr = strerror(errno);
-	
-	va_list ap;
-	va_start(ap, msg);
-	
-	vdprintf(STDERR_FILENO, msg, ap);
-	dprintf(STDERR_FILENO, ": %s\n", errstr);
-	
-	va_end(ap);
-}
-
-void die(const char *msg, ...)
-{
-	va_list ap;
-	va_start(ap, msg);
-	
-	vdprintf(STDERR_FILENO, msg, ap);
-	dprintf(STDERR_FILENO, "\n");
-	
-	va_end(ap);
-	exit(EXIT_FAILURE);
-}
-
-void pdie(const char *msg, ...)
-{
-	char *errstr = strerror(errno);
-	
-	va_list ap;
-	va_start(ap, msg);
-	
-	vdprintf(STDERR_FILENO, msg, ap);
-	dprintf(STDERR_FILENO, ": %s\n", errstr);
-	
-	va_end(ap);
-	exit(EXIT_FAILURE);
-}
-
+static
 void lookup_vdir(xid_t xid)
 {
 	int p[2], fd, status;
@@ -98,7 +50,7 @@ void lookup_vdir(xid_t xid)
 	
 	switch ((pid = fork())) {
 	case -1:
-		pdie("fork");
+		log_error_and_die("fork: %m");
 	
 	case 0:
 		fd = open_read("/dev/null");
@@ -111,21 +63,21 @@ void lookup_vdir(xid_t xid)
 		close(fd);
 		
 		if (vx_get_info(xid, &info) == -1)
-			pdie("vx_get_info");
+			log_error_and_die("vx_get_info: %m");
 		
 		/* TODO: recurse through process list and find one with xid */
 		if (info.initpid < 2)
-			die("invalid initpid");
+			log_error_and_die("invalid initpid");
 		
 		snprintf(procroot, PATH_MAX, "/proc/%d/root", info.initpid);
 		
 		if (vx_migrate(1, NULL) == -1)
-			pdie("vx_migrate");
+			log_error_and_die("vx_migrate: %m");
 		
 		bzero(buf, PATH_MAX);
 		
 		if (readlink(procroot, buf, PATH_MAX - 1) == -1)
-			pdie("readlink");
+			log_error_and_die("readlink: %m");
 		
 		printf(buf);
 		
@@ -141,21 +93,29 @@ void lookup_vdir(xid_t xid)
 		free(data);
 		
 		if (waitpid(pid, &status, 0) == -1)
-			pdie("waitpid");
+			log_error_and_die("waitpid: %m");
 		
 		if (WIFEXITED(status) && WEXITSTATUS(status) != EXIT_SUCCESS)
 			exit(EXIT_FAILURE);
 		
-		if (WIFSIGNALED(status)) {
-			dprintf(STDERR_FILENO, "caught signal %d", WTERMSIG(status));
-			exit(EXIT_FAILURE);
-		}
+		if (WIFSIGNALED(status))
+			log_error_and_die("caught signal %d", WTERMSIG(status));
 	}
 }
 
+static
 int default_wrapper(int argc, char **argv, char *proc, int needxid)
 {
 	xid_t xid;
+	
+	log_options_t log_options = {
+		.ident  = argv[0],
+		.file   = false,
+		.stderr = true,
+		.syslog = false,
+	};
+	
+	log_init(&log_options);
 	
 	/* check for xid and shuffle arguments */
 	if (argc > 2 && strcmp(argv[1], "-x") == 0) {
@@ -171,26 +131,26 @@ int default_wrapper(int argc, char **argv, char *proc, int needxid)
 	}
 	
 	if (needxid && (xid < 2 || xid > 65535))
-		die("xid must be between 2 and 65535");
+		log_error_and_die("xid must be between 2 and 65535");
 	
 	if (xid > 1) {
 		lookup_vdir(xid);
 		
 		if (vx_enter_namespace(xid) == -1)
-			pdie("vx_enter_namespace");
+			log_error_and_die("vx_enter_namespace: %m");
 		
 		if (chroot_secure_chdir(vdir, "/") == -1)
-			pdie("chroot_secure_chdir");
+			log_error_and_die("chroot_secure_chdir: %m");
 		
 		if (chroot(".") == -1)
-			pdie("chroot");
+			log_error_and_die("chroot: %m");
 	}
 	
 	if (vx_migrate(xid, NULL) == -1)
-		pdie("vx_migrate");
+		log_error_and_die("vx_migrate: %m");
 	
 	if (execvp(argv[0], argv) == -1)
-		pdie("execvp");
+		log_error_and_die("execvp: %m");
 	
 	return EXIT_FAILURE;
 }

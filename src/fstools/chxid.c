@@ -22,8 +22,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-
-#include "../wrapper.h"
+#include <lucid/log.h>
 
 #include "fstool.h"
 
@@ -39,7 +38,7 @@ void usage(int rc)
 	       "  -h         Display this help text\n"
 	       "  -v         Display version information\n"
 	       "  -R         Recurse through directories\n"
-	       "  -c         Cross filesystems\n"
+	       "  -c         Cross filesystem mounts\n"
 	       "  -x <xid>   Context ID\n");
 	exit(rc);
 }
@@ -56,7 +55,7 @@ int handle_file(const char *fpath, const struct stat *sb,
 	
 	/* check xid on the first run */
 	if (ftwb->level == 0 && (fstool_args->xid == 1 || fstool_args->xid > 65535)) {
-		err("invalid xid: %d", fstool_args->xid);
+		log_error("invalid xid: %d", fstool_args->xid);
 		return FTW_STOP;
 	}
 	
@@ -65,7 +64,7 @@ int handle_file(const char *fpath, const struct stat *sb,
 		iattr.flags = 0;
 	
 	if (vx_set_iattr(&iattr) == -1) {
-		perr("vx_set_iattr(%s)", fpath);
+		log_error("vx_set_iattr(%s): %m", fpath);
 		errcnt++;
 	}
 	
@@ -74,8 +73,12 @@ int handle_file(const char *fpath, const struct stat *sb,
 	if (tflag == FTW_D && !fstool_args->recurse)
 		return FTW_STOP;
 	
-	if (tflag == FTW_DNR)
-		perr("could not read directory: %s", fpath);
+	/* if the top-level directory can't be read it will stop anyway, any other
+	   directory that can't be read appears only if recurse is enabled */
+	if (tflag == FTW_DNR) {
+		log_error("could not read directory: %s", fpath);
+		errcnt++;
+	}
 	
 	return FTW_CONTINUE;
 }

@@ -15,15 +15,21 @@
 // Free Software Foundation, Inc.,
 // 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-#include "../wrapper.h"
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
 
-#include <stdio.h>
-#include <stdlib.h>
 #include <unistd.h>
+#include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include <ctype.h>
-#include <vserver.h>
 #include <getopt.h>
+#include <vserver.h>
+#include <sys/wait.h>
+#include <lucid/io.h>
+#include <lucid/log.h>
+#include <lucid/open.h>
 
 #define PS_BIN "/bin/ps"
 
@@ -31,7 +37,7 @@ int error_mode = 0, fxid = -1;
 
 static const char *rcsid = "$Id: vps.c 315 2006-08-05 21:43:43Z coloss $";
 
-static 
+static
 struct option long_opts[] = {
 	{ "xid", 1, 0, 0x01 },
 	{ "help", 0, 0, 0x02 },
@@ -108,9 +114,14 @@ int main(int argc, char **argv)
 	pid_t pid;
 	char *line, c, *nargv[argc];
 	
-	/* root access is needed */
-	if (getuid())
-		die("root access is needed");
+	log_options_t log_options = {
+		.ident  = argv[0],
+		.file   = false,
+		.stderr = true,
+		.syslog = false,
+	};
+	
+	log_init(&log_options);
 	
 	while ((c = getopt_long_only(argc, argv, "", long_opts, NULL)) != -1) {
 		switch (c) {
@@ -147,7 +158,7 @@ int main(int argc, char **argv)
 	
 	switch ((pid = fork())) {
 	case -1:
-		pdie("fork");
+		log_error_and_die("fork: %m");
 	
 	case 0:
 		fd = open_read("/dev/null");
@@ -160,14 +171,14 @@ int main(int argc, char **argv)
 		close(fd);
 		
 		if (vx_migrate(1, NULL) == -1)
-			pdie("vx_migrate");
+			log_error_and_die("vx_migrate: %m");
 		
 		if (fxid >= 0) {
 			if (execvp(nargv[0], nargv) == -1)
-				pdie("execvp");
+				log_error_and_die("execvp: %m");
 		} else {
 			if (execvp(argv[0], argv) == -1)
-				pdie("execvp");
+				log_error_and_die("execvp: %m");
 		}
 	
 	default:
@@ -175,7 +186,7 @@ int main(int argc, char **argv)
 		
 		for (i = 0; ; i++) {
 			if ((len = io_read_eol(p[0], &line)) == -1)
-				pdie("io_read_eol");
+				log_error_and_die("io_read_eol: %m");
 			
 			if (!len)
 				break;
@@ -189,7 +200,7 @@ int main(int argc, char **argv)
 		close(p[0]);
 		
 		if (waitpid(pid, &status, 0) == -1)
-			pdie("waitpid");
+			log_error_and_die("waitpid: %m");
 	}
 	
 	exit(EXIT_SUCCESS);

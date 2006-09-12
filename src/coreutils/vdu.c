@@ -30,8 +30,7 @@
 #include <ftw.h>
 #include <search.h>
 #include <vserver.h>
-
-#include "../wrapper.h"
+#include <lucid/log.h>
 
 static const char *rcsid = "$Id";
 
@@ -47,6 +46,7 @@ static bool do_inode = false;
 static uint64_t used_blocks = 0;
 static uint64_t used_inodes = 0;
 
+static
 void usage(int rc)
 {
 	printf("Usage: vdu [-hvcsi] [-b <size>] -x <xid> <path>*\n"
@@ -85,7 +85,7 @@ int handle_file(const char *fpath, const struct stat *sb,
 	iattr.filename = fpath + ftwb->base;
 	
 	if (vx_get_iattr(&iattr) == -1) {
-		perr("vx_get_iattr(%s)", fpath);
+		log_error("vx_get_iattr(%s): %m", fpath);
 		errcnt++;
 	}
 	
@@ -99,7 +99,7 @@ int handle_file(const char *fpath, const struct stat *sb,
 		}
 		
 		if (tsearch(&sb->st_ino, &inotable, inocmp) == NULL) {
-			perr("tsearch(%u)", sb->st_ino);
+			log_error("tsearch(%u): %m", sb->st_ino);
 			errcnt++;
 		}
 	}
@@ -141,6 +141,15 @@ int main (int argc, char **argv)
 {
 	int i, c, bs = 1024, flags = FTW_MOUNT|FTW_PHYS|FTW_CHDIR|FTW_ACTIONRETVAL;
 	
+	log_options_t log_options = {
+		.ident  = argv[0],
+		.file   = false,
+		.stderr = true,
+		.syslog = false,
+	};
+	
+	log_init(&log_options);
+	
 	while (1) {
 		c = getopt(argc, argv, "hvcsib:x:");
 		
@@ -156,25 +165,18 @@ int main (int argc, char **argv)
 			case 's': do_space = true; break;
 			case 'i': do_inode = true; break;
 			
-			case 'b': bs = atoi(optarg); break;
-			
-			case 'x':
-				xid = atoi(optarg);
-				
-				if (xid == 1 || xid > 65535)
-					die("invalid xid: %d", xid);
-				
-				break;
+			case 'b': bs  = atoi(optarg); break;
+			case 'x': xid = atoi(optarg); break;
 			
 			default: usage(EXIT_FAILURE);
 		}
 	}
 	
 	if (xid == 1 || xid > 65535)
-		die("invalid xid: %d", xid);
+		log_error_and_die("invalid xid: %d", xid);
 	
 	if (!do_space && !do_inode)
-		die("no action specified. use -s and/or -i");
+		log_error_and_die("no action specified. use -s and/or -i");
 	
 	if (optind == argc)
 		count_path(".", flags, bs);

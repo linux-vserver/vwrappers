@@ -21,7 +21,7 @@ noinst_HEADERS = fstool.h
 
 sbin_PROGRAMS = chxid
 
-chxid_SOURCES = chxid.c
+chxid_SOURCES = chxid.c main.c
 chxid_LDADD = $(VSERVER_LIBS) $(LUCID_LIBS)
 
 endif

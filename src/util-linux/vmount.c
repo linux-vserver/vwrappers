@@ -15,9 +15,11 @@
 // Free Software Foundation, Inc.,
 // 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-#include "../wrapper.h"
+#include <stdlib.h>
+#include <stdio.h>
 
 int main(int argc, char **argv)
 {
-	pdie("not implemented yet");
+	printf("not implemented yet\n");
+	return EXIT_FAILURE;
 }
