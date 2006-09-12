@@ -158,7 +158,7 @@ int default_wrapper(int argc, char **argv, char *proc, int needxid)
 	xid_t xid;
 	
 	/* check for xid and shuffle arguments */
-	if (argc > 2 && strcmp(argv[1], "--xid") == 0) {
+	if (argc > 2 && strcmp(argv[1], "-x") == 0) {
 		xid = atoi(argv[2]);
 		argv[2] = proc;
 		argv = &argv[2];
