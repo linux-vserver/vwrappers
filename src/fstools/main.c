@@ -59,9 +59,7 @@ int main(int argc, char **argv)
 	
 	log_options_t log_options = {
 		.ident  = argv[0],
-		.file   = false,
 		.stderr = true,
-		.syslog = false,
 	};
 	
 	log_init(&log_options);

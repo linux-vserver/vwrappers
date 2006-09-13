@@ -23,7 +23,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <ctype.h>
 #include <getopt.h>
 #include <vserver.h>
 #include <sys/wait.h>
@@ -31,27 +30,9 @@
 #include <lucid/log.h>
 #include <lucid/open.h>
 
-#define PS_BIN "/bin/ps"
-
-int error_mode = 0, fxid = -1;
-
 static const char *rcsid = "$Id$";
 
-static
-struct option long_opts[] = {
-	{ "xid", 1, 0, 0x01 },
-	{ "help", 0, 0, 0x02 },
-	{ "version", 0, 0, 0x03 },
-	{ NULL, 0, 0, 0 },
-};
-
-static 
-char *tail_name(char *vname)
-{
-	char *pch;
-	pch = strrchr(vname, '/') + 1;
-	return strdup(pch);
-}
+static int error_mode = 0;
 
 static
 void parse_line(char *line, int n)
@@ -64,8 +45,8 @@ void parse_line(char *line, int n)
 	
 	if (n == 0) {
 		if ((pid_pos = strstr(line, "  PID")) == 0) {
-			dprintf(STDERR_FILENO, "vps: PID column not found, writing ps output\n");
-			printf(line);
+			log_error("PID column not found, dumping ps output as-is");
+			printf("%s\n", line);
 			error_mode = 1;
 			return;
 		}
@@ -79,13 +60,18 @@ void parse_line(char *line, int n)
 	else {
 		pid = atoi(line + pid_start);
 		
-		if (pid < 0)
+		if (pid < 0) {
+			log_error("invalid pid %d on line %d", pid, n);
 			return;
+		}
 		
-		if ((xid = vx_get_task_xid(pid)) == -1)
-			return;
+		if ((xid = vx_get_task_xid(pid)) == -1) {
+			log_error("could not get xid for pid %d", pid);
+			xid  = ~(0UL);
+			name = "ERR";
+		}
 		
-		if (xid == 0)
+		else if (xid == 0)
 			name = "ADMIN";
 		
 		else if (xid == 1)
@@ -94,66 +80,29 @@ void parse_line(char *line, int n)
 		else {
 			vhi_name.field = VHIN_CONTEXT;
 			
-			if (vx_get_vhi_name(xid, &vhi_name) == -1)
-				return;
+			if (vx_get_vhi_name(xid, &vhi_name) == -1) {
+				log_error("could not get name for xid %d", xid);
+				name = "ERR";
+			}
 			
-			if (vhi_name.name[0] == '/')
-				name = tail_name(vhi_name.name);
+			else if (vhi_name.name[0] == '/')
+				name = strrchr(vhi_name.name, '/') + 1;
 			
 			else
 				name = vhi_name.name;
 		}
-		if (fxid == -1 || xid == fxid)
-			printf("%5d %-8.8s %s\n", xid, name, line);
+		
+		printf("%5d %-8.8s %s\n", xid, name, line);
 	}
 }
 
-int main(int argc, char **argv)
+static
+void pipe_ps(int argc, char **argv)
 {
-	int p[2], fd, i, status, len, j = 0;
+	int p[2], fd, i, status, len;
 	pid_t pid;
-	char *line, c, *nargv[argc];
+	char *line;
 	
-	log_options_t log_options = {
-		.ident  = argv[0],
-		.file   = false,
-		.stderr = true,
-		.syslog = false,
-	};
-	
-	log_init(&log_options);
-	
-	while ((c = getopt_long_only(argc, argv, "", long_opts, NULL)) != -1) {
-		switch (c) {
-			case 0x01:
-				fxid = atoi(optarg);
-				break;
-			case 0x02:
-				printf("Usage: vps <ps options> [--xid <xid>]\n");
-				break;
-			case 0x03:
-				printf("%s\n", rcsid);
-				exit(EXIT_SUCCESS);
-				break;
-			case ':':
-			case '?':
-				exit(EXIT_FAILURE);
-		}
-	}
-
-	argv[0] = PS_BIN;
-
-	if (fxid >= 0) {
-		for (i = 0; i < argc; i++) {
-			if (!strcmp(argv[i], "--xid")) {
-				if (i + 2 < argc)
-					i+=1;
-			} else
-				nargv[j++] = argv[i];
-		}
-		nargv[0] = PS_BIN;
-	}
-
 	pipe(p);
 	
 	switch ((pid = fork())) {
@@ -173,13 +122,8 @@ int main(int argc, char **argv)
 		if (vx_migrate(1, NULL) == -1)
 			log_perror_and_die("vx_migrate");
 		
-		if (fxid >= 0) {
-			if (execvp(nargv[0], nargv) == -1)
-				log_perror_and_die("execvp");
-		} else {
-			if (execvp(argv[0], argv) == -1)
-				log_perror_and_die("execvp");
-		}
+		if (execvp(argv[0], argv) == -1)
+			log_perror_and_die("execvp");
 	
 	default:
 		close(p[1]);
@@ -204,4 +148,63 @@ int main(int argc, char **argv)
 	}
 	
 	exit(EXIT_SUCCESS);
+}
+
+int main(int argc, char **argv)
+{
+	int c;
+	xid_t xid = 1;
+	
+	log_options_t log_options = {
+		.ident  = argv[0],
+		.stderr = true,
+	};
+	
+	log_init(&log_options);
+	
+	while (1) {
+		c = getopt(argc, argv, "+hvx:");
+		
+		if (c == -1)
+			break;
+		
+		switch (c) {
+			case 'h':
+				printf("Usage: %s [-x <xid>] [-- <args>]\n", argv[0]);
+				exit(EXIT_SUCCESS);
+			
+			case 'v':
+				printf("%s\n", rcsid); exit(EXIT_SUCCESS);
+				break;
+			
+			case 'x':
+				xid = atoi(optarg);
+				break;
+			
+			default:
+				printf("Usage: %s [-x <xid>] [-- <args>]\n", argv[0]);
+				exit(EXIT_FAILURE);
+		}
+	}
+	
+	argv[--optind] = "/bin/ps";
+	
+	if (xid == 1)
+		pipe_ps(argc - optind, argv + optind);
+	
+	else if (xid == 0 && execvp(argv[optind], argv+optind) == -1)
+		log_perror_and_die("execvp");
+	
+	else if (xid > 1 && xid < 65536) {
+		if (vx_migrate(xid, NULL) == -1)
+			log_perror_and_die("vx_migrate");
+		
+		if (execvp(argv[optind], argv+optind) == -1)
+			log_perror_and_die("execvp");
+	}
+	
+	else
+		log_error_and_die("invalid xid: %d", xid);
+	
+	return EXIT_SUCCESS;
 }

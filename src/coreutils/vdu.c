@@ -101,6 +101,7 @@ int handle_file(const char *fpath, const struct stat *sb,
 		if (tsearch(&sb->st_ino, &inotable, inocmp) == NULL) {
 			log_perror("tsearch(%u)", sb->st_ino);
 			errcnt++;
+			return FTW_STOP;
 		}
 	}
 	
@@ -143,15 +144,13 @@ int main (int argc, char **argv)
 	
 	log_options_t log_options = {
 		.ident  = argv[0],
-		.file   = false,
 		.stderr = true,
-		.syslog = false,
 	};
 	
 	log_init(&log_options);
 	
 	while (1) {
-		c = getopt(argc, argv, "hvcsib:x:");
+		c = getopt(argc, argv, "+hvcsib:x:");
 		
 		if (c == -1)
 			break;

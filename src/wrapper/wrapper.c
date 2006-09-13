@@ -112,22 +112,20 @@ int default_wrapper(int argc, char **argv, char *proc, int needxid)
 	
 	log_options_t log_options = {
 		.ident  = argv[0],
-		.file   = false,
 		.stderr = true,
-		.syslog = false,
 	};
 	
 	log_init(&log_options);
 	
 	while (1) {
-		c = getopt(argc, argv, "hvx:");
+		c = getopt(argc, argv, "+hvx:");
 		
 		if (c == -1)
 			break;
 		
 		switch (c) {
 			case 'h':
-				printf("Usage: %s [-x <xid> --] <args>\n", argv[0]);
+				printf("Usage: %s [-x <xid>] [-- <args>]\n", argv[0]);
 				exit(EXIT_SUCCESS);
 			
 			case 'v':
@@ -139,7 +137,7 @@ int default_wrapper(int argc, char **argv, char *proc, int needxid)
 				break;
 			
 			default:
-				printf("Usage: %s [-x <xid> --] <args>\n", argv[0]);
+				printf("Usage: %s [-x <xid>] [-- <args>]\n", argv[0]);
 				exit(EXIT_FAILURE);
 		}
 	}
