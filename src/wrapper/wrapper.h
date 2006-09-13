@@ -18,6 +18,10 @@
 #ifndef _WRAPPER_H
 #define _WRAPPER_H
 
+#include <vserver.h>
+
+char *lookup_vdir(xid_t xid, char *vdir, size_t len);
+
 int default_wrapper(int argc, char **argv, char *proc, int needxid);
 
 #define DEFAULT_WRAPPER(PROC, NEEDXID) \

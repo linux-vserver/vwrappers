@@ -19,4 +19,5 @@ noinst_HEADERS = wrapper.h
 
 noinst_LIBRARIES = libwrapper.a
 
-libwrapper_a_SOURCES = wrapper.c
+libwrapper_a_SOURCES = vdir.c \
+                       wrapper.c

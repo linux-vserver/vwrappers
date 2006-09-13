@@ -66,7 +66,7 @@ void parse_line(char *line, int n)
 		}
 		
 		if ((xid = vx_get_task_xid(pid)) == -1) {
-			log_error("could not get xid for pid %d", pid);
+			log_perror("could not get xid for pid %d", pid);
 			xid  = ~(0UL);
 			name = "ERR";
 		}
@@ -81,7 +81,7 @@ void parse_line(char *line, int n)
 			vhi_name.field = VHIN_CONTEXT;
 			
 			if (vx_get_vhi_name(xid, &vhi_name) == -1) {
-				log_error("could not get name for xid %d", xid);
+				log_perror("could not get name for xid %d", xid);
 				name = "ERR";
 			}
 			
