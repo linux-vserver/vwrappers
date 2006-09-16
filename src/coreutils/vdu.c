@@ -31,6 +31,7 @@
 #include <search.h>
 #include <vserver.h>
 #include <lucid/log.h>
+#include <string.h>
 
 static const char *rcsid = "$Id$";
 
@@ -42,6 +43,7 @@ static xid_t xid = ~(0UL);
 
 static bool do_space = false;
 static bool do_inode = false;
+static bool do_hr = false;
 
 static uint64_t used_blocks = 0;
 static uint64_t used_inodes = 0;
@@ -57,9 +59,32 @@ void usage(int rc)
 	       "  -c         Cross filesystem mounts\n"
 	       "  -s         Calculate used space\n"
 	       "  -i         Calculate used inodes\n"
+	       "  -r         Calculate used space in  human readable format\n"
 	       "  -b <size>  Blocksize (default: 1024)\n"
 	       "  -x <xid>   Context ID\n");
 	exit(rc);
+}
+
+char  *do_human_readable(uint64_t value) {
+	char *SUFF[] = { " ", "K", "M", "G" };
+	char *buf;
+	int i;
+	float vl;
+
+	vl = (float) value;
+
+	for (i=0; i < 4; i++) {
+		if ((int) (vl / 1024) == 0)
+			break;
+		vl /= 1024;
+	}
+	/* Max value -> 999.99 */
+	if (vl > 999.99)
+		asprintf(&buf, "undef");
+	else
+		asprintf(&buf, "%.2f%s", vl, SUFF[i]);
+
+	return (strdup(buf));
 }
 
 static
@@ -128,7 +153,10 @@ void count_path(const char *path, int flags, int bs)
 		printf(" ERR");
 	
 	else {
-		if (do_space)
+		if (do_hr)
+			printf(" %s", do_human_readable (used_blocks * 512 / bs));
+
+		else if (do_space)
 			printf(" %" PRIu64, used_blocks * 512 / bs);
 		
 		if (do_inode)
@@ -146,11 +174,11 @@ int main (int argc, char **argv)
 		.ident  = argv[0],
 		.stderr = true,
 	};
-	
+
 	log_init(&log_options);
-	
+		
 	while (1) {
-		c = getopt(argc, argv, "+hvcsib:x:");
+		c = getopt(argc, argv, "+hvcsirb:x:");
 		
 		if (c == -1)
 			break;
@@ -163,6 +191,7 @@ int main (int argc, char **argv)
 			
 			case 's': do_space = true; break;
 			case 'i': do_inode = true; break;
+			case 'r': do_hr = true; break;
 			
 			case 'b': bs  = atoi(optarg); break;
 			case 'x': xid = atoi(optarg); break;
