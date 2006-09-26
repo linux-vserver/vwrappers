@@ -28,6 +28,7 @@ sbin_PROGRAMS = vfuser \
                 vpstree \
                 vskill \
                 vsnice \
+                vstat \
                 vtop \
                 vuptime \
                 vw
@@ -60,6 +61,9 @@ vskill_LDADD = $(VSERVER_LIBS) $(LUCID_LIBS) $(WRAPPER_LIBS)
 
 vsnice_SOURCES = vsnice.c
 vsnice_LDADD = $(VSERVER_LIBS) $(LUCID_LIBS) $(WRAPPER_LIBS)
+
+vstat_SOURCES = vstat.c
+vstat_LDADD = $(VSERVER_LIBS) $(LUCID_LIBS)
 
 vtop_SOURCES = vtop.c
 vtop_LDADD = $(VSERVER_LIBS) $(LUCID_LIBS) $(WRAPPER_LIBS)
