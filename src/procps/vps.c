@@ -41,7 +41,7 @@ void parse_line(char *line, int n)
 	static int pid_start;
 	pid_t pid;
 	xid_t xid;
-	struct vx_vhi_name vhi_name;
+	struct vx_uname uname;
 	
 	if (n == 0) {
 		if ((pid_pos = strstr(line, "  PID")) == 0) {
@@ -78,18 +78,18 @@ void parse_line(char *line, int n)
 			name = "WATCH";
 		
 		else {
-			vhi_name.field = VHIN_CONTEXT;
+			uname.id = VHIN_CONTEXT;
 			
-			if (vx_get_vhi_name(xid, &vhi_name) == -1) {
+			if (vx_get_uname(xid, &uname) == -1) {
 				log_perror("could not get name for xid %d", xid);
 				name = "ERR";
 			}
 			
-			else if (vhi_name.name[0] == '/')
-				name = strrchr(vhi_name.name, '/') + 1;
+			else if (uname.value[0] == '/')
+				name = strrchr(uname.value, '/') + 1;
 			
 			else
-				name = vhi_name.name;
+				name = uname.value;
 		}
 		
 		printf("%5d %-8.8s %s\n", xid, name, line);
@@ -139,6 +139,8 @@ void pipe_ps(int argc, char **argv)
 				printf("%s\n", line);
 			else
 				parse_line(line, i);
+			
+			free(line);
 		}
 		
 		close(p[0]);
@@ -161,6 +163,7 @@ int main(int argc, char **argv)
 	};
 	
 	log_init(&log_options);
+	atexit(log_close);
 	
 	while (1) {
 		c = getopt(argc, argv, "+hvx:");

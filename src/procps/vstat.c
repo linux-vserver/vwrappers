@@ -31,7 +31,10 @@
 #include <time.h>
 #include <getopt.h>
 
+#include <lucid/argv.h>
 #include <lucid/list.h>
+#include <lucid/misc.h>
+#include <lucid/open.h>
 
 #define BUF 256
 #define PROCDIR "/proc"
@@ -46,7 +49,7 @@ static uint64_t pagesize, hz, uptime;
 
 struct vs_proc_t{
 	struct list_head list;
-	char vname[VHILEN];
+	char vname[65];
 	xid_t xid;
 	uint64_t procs;
 	uint64_t vm;
@@ -199,13 +202,13 @@ char *tail_name (char *vname)
 	return strdup(pch);
 }
 
-char *get_vname (xid_t xid, struct vx_vhi_name vhi_name) 
+char *get_vname (xid_t xid, struct vx_uname uname)
 {
-	vhi_name.field = VHIN_CONTEXT;
+	uname.id = VHIN_CONTEXT;
 	
-	if (vx_get_vhi_name(xid, &vhi_name) == -1)
+	if (vx_get_uname(xid, &uname) == -1)
 		return NULL;
-	return strdup(vhi_name.name);
+	return strdup(uname.value);
 }
 
 int main(int argc, char *argv[])
@@ -216,9 +219,9 @@ int main(int argc, char *argv[])
 	pid_t pid;
 	struct vs_proc_t *tmp, vsp;
 	struct list_head *pos;
-	struct vx_vhi_name v_name;
+	struct vx_uname v_name;
 	int lock = 0, fd;
-	char c, *file, buffer[BUF], *vargv[BUF], name[VHILEN];
+	char c, *file, buffer[BUF], *vargv[BUF], name[65];
 	uint64_t stime = 0;
 
 	while ((c = getopt(argc, argv, "hv")) != -1) {

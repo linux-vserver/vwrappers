@@ -37,23 +37,23 @@ static
 void lookup_vdir_vhiname(xid_t xid)
 {
 	char *vserverdir;
-	struct vx_vhi_name vhi_name;
+	struct vx_uname uname;
 	
-	vhi_name.field = VHIN_CONTEXT;
+	uname.id = VHIN_CONTEXT;
 	
-	if (vx_get_vhi_name(xid, &vhi_name) == -1)
+	if (vx_get_uname(xid, &uname) == -1)
 		return;
 	
 	/* util-vserver format */
-	else if (vhi_name.name[0] == '/')
-		asprintf(&_vdir, "%s/vdir", vhi_name.name);
+	else if (uname.value[0] == '/')
+		asprintf(&_vdir, "%s/vdir", uname.value);
 	
 	/* vcd format */
 	else {
-		vserverdir = strchr(vhi_name.name, ':');
+		vserverdir = strchr(uname.value, ':');
 		*vserverdir++ = '\0';
 		
-		asprintf(&_vdir, "%s/%s", vserverdir, vhi_name.name);
+		asprintf(&_vdir, "%s/%s", vserverdir, uname.value);
 	}
 }
 

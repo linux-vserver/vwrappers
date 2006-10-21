@@ -63,6 +63,7 @@ int main(int argc, char **argv)
 	};
 	
 	log_init(&log_options);
+	atexit(log_close);
 	
 	fstool_args = &args;
 	

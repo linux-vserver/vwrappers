@@ -43,6 +43,7 @@ int default_wrapper(int argc, char **argv, char *proc, int needxid)
 	};
 	
 	log_init(&log_options);
+	atexit(log_close);
 	
 	while (1) {
 		c = getopt(argc, argv, "+hvx:");
@@ -81,7 +82,7 @@ int default_wrapper(int argc, char **argv, char *proc, int needxid)
 		if (lookup_vdir(xid, vdir, PATH_MAX) == NULL)
 			log_error_and_die("could not find vserver dir");
 		
-		if (vx_enter_namespace(xid) == -1)
+		if (ns_enter(xid) == -1)
 			log_perror_and_die("vx_enter_namespace");
 		
 		if (chroot_secure_chdir(vdir, "/") == -1)

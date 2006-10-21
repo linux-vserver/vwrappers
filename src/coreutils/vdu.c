@@ -105,20 +105,22 @@ static
 int handle_file(const char *fpath, const struct stat *sb,
                 int typeflag, struct FTW *ftwb)
 {
-	struct vx_iattr iattr;
+	struct ix_attr attr;
 	
-	iattr.filename = fpath + ftwb->base;
+	attr.filename = fpath + ftwb->base;
 	
-	if (vx_get_iattr(&iattr) == -1) {
-		log_perror("vx_get_iattr(%s)", fpath);
+	if (ix_get_attr(&attr) == -1) {
+		log_perror("ix_get_attr(%s)", fpath);
 		errcnt++;
+		return FTW_STOP;
 	}
 	
-	if (!(iattr.mask & IATTR_TAG))
+	/* TODO: bail out if no IATTR_TAG? */
+	if (!(attr.mask & IATTR_TAG))
 		return FTW_CONTINUE;
 	
-	if ((sb->st_nlink == 1 || tfind(&sb->st_ino, &inotable, inocmp) == NULL)) {
-		if (iattr.xid == xid) {
+	if (sb->st_nlink == 1 || tfind(&sb->st_ino, &inotable, inocmp) == NULL) {
+		if (attr.xid == xid) {
 			used_blocks += sb->st_blocks;
 			used_inodes += 1;
 		}
@@ -176,7 +178,8 @@ int main (int argc, char **argv)
 	};
 
 	log_init(&log_options);
-		
+	atexit(log_close);
+	
 	while (1) {
 		c = getopt(argc, argv, "+hvcsirb:x:");
 		

@@ -46,7 +46,7 @@ void usage(int rc)
 int handle_file(const char *fpath, const struct stat *sb,
                 int tflag, struct FTW *ftwb)
 {
-	struct vx_iattr iattr = {
+	struct ix_attr attr = {
 		.filename = fpath + ftwb->base,
 		.xid      = fstool_args->xid,
 		.flags    = IATTR_TAG,
@@ -60,11 +60,11 @@ int handle_file(const char *fpath, const struct stat *sb,
 	}
 	
 	/* unset xid tagging if xid == 0 */
-	if (iattr.xid == 0)
-		iattr.flags = 0;
+	if (attr.xid == 0)
+		attr.flags = 0;
 	
-	if (vx_set_iattr(&iattr) == -1) {
-		log_perror("vx_set_iattr(%s)", fpath);
+	if (ix_set_attr(&attr) == -1) {
+		log_perror("ix_set_attr(%s)", fpath);
 		errcnt++;
 	}
 	

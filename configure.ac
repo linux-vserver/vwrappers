@@ -93,7 +93,7 @@ AM_CONDITIONAL(ENABLE_UTIL_LINUX, test x$enable_util_linux = xtrue)
 
 
 # Checks for libraries.
-AC_CHECK_LIB(vserver, vx_clone_namespace, 
+AC_CHECK_LIB(vserver, vx_get_stat,
 	VSERVER_LIBS="-lvserver", AC_MSG_ERROR([libvserver >= 2.0 not found]),)
 
 AC_SUBST(VSERVER_LIBS)
