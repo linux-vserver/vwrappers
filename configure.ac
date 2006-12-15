@@ -93,12 +93,12 @@ AM_CONDITIONAL(ENABLE_UTIL_LINUX, test x$enable_util_linux = xtrue)
 
 
 # Checks for libraries.
-AC_CHECK_LIB(vserver, vx_get_stat,
+AC_CHECK_LIB(vserver, vx_stat,
 	VSERVER_LIBS="-lvserver", AC_MSG_ERROR([libvserver >= 2.0 not found]),)
 
 AC_SUBST(VSERVER_LIBS)
 
-AC_CHECK_LIB(ucid, str_check,
+AC_CHECK_LIB(ucid, str_path_concat,
 	LUCID_LIBS="-lucid", AC_MSG_ERROR([lucid not found]),)
 
 AC_SUBST(LUCID_LIBS)

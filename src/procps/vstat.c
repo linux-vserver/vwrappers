@@ -35,6 +35,7 @@
 #include <lucid/list.h>
 #include <lucid/misc.h>
 #include <lucid/open.h>
+#include <lucid/str.h>
 
 #define BUF 256
 #define PROCDIR "/proc"
@@ -202,11 +203,11 @@ char *tail_name (char *vname)
 	return strdup(pch);
 }
 
-char *get_vname (xid_t xid, struct vx_uname uname)
+char *get_vname (xid_t xid, vx_uname_t uname)
 {
 	uname.id = VHIN_CONTEXT;
 	
-	if (vx_get_uname(xid, &uname) == -1)
+	if (vx_uname_get(xid, &uname) == -1)
 		return NULL;
 	return strdup(uname.value);
 }
@@ -219,7 +220,7 @@ int main(int argc, char *argv[])
 	pid_t pid;
 	struct vs_proc_t *tmp, vsp;
 	struct list_head *pos;
-	struct vx_uname v_name;
+	vx_uname_t v_name;
 	int lock = 0, fd;
 	char c, *file, buffer[BUF], *vargv[BUF], name[65];
 	uint64_t stime = 0;
@@ -256,12 +257,12 @@ int main(int argc, char *argv[])
 		pid = atoi(ditp->d_name);
 		if (!isdigit(*ditp->d_name))
 			continue;
-		xid = vx_get_task_xid(pid);
+		xid = vx_task_xid(pid);
 		if (xid > 1 || xid == 0) {
 			tmp= (struct vs_proc_t *) malloc(sizeof(struct vs_proc_t));
 
 			snprintf(buffer, sizeof(buffer) - 1, "%s/%d", PROCDIR, pid);
-			file = path_concat(buffer, "stat");
+			file = str_path_concat(buffer, "stat");
 
 			if ((fd = open_read(file)) == -1) {
 				fprintf(stderr, "PID '%d', xid '%d' - open(%s): %s\n", pid, xid, file, strerror(errno));

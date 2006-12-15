@@ -37,11 +37,11 @@ static
 void lookup_vdir_vhiname(xid_t xid)
 {
 	char *vserverdir;
-	struct vx_uname uname;
+	vx_uname_t uname;
 	
 	uname.id = VHIN_CONTEXT;
 	
-	if (vx_get_uname(xid, &uname) == -1)
+	if (vx_uname_get(xid, &uname) == -1)
 		return;
 	
 	/* util-vserver format */
@@ -63,7 +63,7 @@ void lookup_vdir_initpid(xid_t xid)
 	int p[2], fd, status;
 	pid_t pid;
 	char procroot[PATH_MAX], buf[PATH_MAX];
-	struct vx_info info;
+	vx_info_t info;
 	
 	pipe(p);
 	
@@ -83,7 +83,7 @@ void lookup_vdir_initpid(xid_t xid)
 		close(p[1]);
 		close(fd);
 		
-		if (vx_get_info(xid, &info) == -1)
+		if (vx_info(xid, &info) == -1)
 			exit(EXIT_FAILURE);
 		
 		if (info.initpid < 2)

@@ -21,64 +21,59 @@
 
 #include <stdlib.h>
 #include <stdio.h>
-#include <string.h>
 #include <lucid/log.h>
 
 #include "fstool.h"
 
 const char *rcsid = "$Id$";
 
-const char *optstring = "+hvRcx:";
+const char *optstring = "hvRcd";
 
 void usage(int rc)
 {
-	printf("Usage: chxid [-hvRc] -x <xid> <path>*\n"
+	printf("Usage: lsxid [-hvRcd] <path>*\n"
 	       "\n"
 	       "Available Options:\n"
 	       "  -h         Display this help text\n"
 	       "  -v         Display version information\n"
 	       "  -R         Recurse through directories\n"
-	       "  -c         Cross filesystem mounts\n"
-	       "  -x <xid>   Context ID\n");
+	       "  -c         Cross filesystems\n"
+	       "  -d         Display directory instead of contents\n");
 	exit(rc);
 }
 
 int handle_file(const char *fpath, const struct stat *sb,
                 int tflag, struct FTW *ftwb)
 {
-	ix_attr_t attr = {
-		.filename = fpath + ftwb->base,
-		.xid      = fstool_args->xid,
-		.flags    = IATTR_TAG,
-		.mask     = IATTR_TAG,
-	};
+	ix_attr_t attr;
 	
-	/* check xid on the first run */
-	if (ftwb->level == 0 && (fstool_args->xid == 1 || fstool_args->xid > 65535)) {
-		log_error("invalid xid: %d", fstool_args->xid);
-		return FTW_STOP;
-	}
+	attr.filename = fpath + ftwb->base;
 	
-	/* unset xid tagging if xid == 0 */
-	if (attr.xid == 0)
-		attr.flags = 0;
-	
-	if (ix_attr_set(&attr) == -1) {
-		log_perror("ix_set_attr(%s)", fpath);
-		errcnt++;
-	}
-	
-	/* do not recurse (due to pre-order traversal, the first call of handle_file
-	   is always the directory pointed to by command line arguments) */
-	if (tflag == FTW_D && !fstool_args->recurse)
-		return FTW_STOP;
-	
-	/* if the top-level directory can't be read it will stop anyway, any other
-	   directory that can't be read appears only if recurse is enabled */
 	if (tflag == FTW_DNR) {
 		log_error("could not read directory: %s", fpath);
 		errcnt++;
+		return FTW_CONTINUE;
 	}
+	
+	if (ix_attr_get(&attr) == -1) {
+		log_error("ix_attr_get(%s): %m", fpath);
+		errcnt++;
+		return FTW_CONTINUE;
+	}
+	
+	if (attr.mask & IATTR_TAG)
+		printf("%5d %s%s", attr.xid, fpath, tflag == FTW_D ? "/\n" : "\n");
+	
+	else
+		printf("NOTAG %s%s", fpath, tflag == FTW_D ? "/\n" : "\n");
+	
+	/* show directory entry instead of its contents */
+	if (ftwb->level == 0 && fstool_args->dironly)
+		return FTW_STOP;
+	
+	/* do not recurse but display directory entries */
+	if (tflag == FTW_D && ftwb->level > 0 && !fstool_args->recurse)
+		return FTW_SKIP_SUBTREE;
 	
 	return FTW_CONTINUE;
 }

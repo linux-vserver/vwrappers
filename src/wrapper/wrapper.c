@@ -76,7 +76,7 @@ int default_wrapper(int argc, char **argv, char *proc, int needxid)
 		log_error_and_die("invalid xid: %d", xid);
 	
 	if (xid > 1) {
-		if (vx_get_info(xid, NULL) == -1)
+		if (vx_info(xid, NULL) == -1)
 			log_perror_and_die("vx_get_info");
 			
 		if (lookup_vdir(xid, vdir, PATH_MAX) == NULL)

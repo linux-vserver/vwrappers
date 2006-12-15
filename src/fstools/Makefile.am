@@ -19,9 +19,13 @@ if ENABLE_FSTOOLS
 
 noinst_HEADERS = fstool.h
 
-sbin_PROGRAMS = chxid
+sbin_PROGRAMS = chxid \
+                lsxid
 
 chxid_SOURCES = chxid.c main.c
 chxid_LDADD = $(VSERVER_LIBS) $(LUCID_LIBS)
+
+lsxid_SOURCES = lsxid.c main.c
+lsxid_LDADD = $(VSERVER_LIBS) $(LUCID_LIBS)
 
 endif

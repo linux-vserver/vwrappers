@@ -105,11 +105,11 @@ static
 int handle_file(const char *fpath, const struct stat *sb,
                 int typeflag, struct FTW *ftwb)
 {
-	struct ix_attr attr;
+	ix_attr_t attr;
 	
 	attr.filename = fpath + ftwb->base;
 	
-	if (ix_get_attr(&attr) == -1) {
+	if (ix_attr_get(&attr) == -1) {
 		log_perror("ix_get_attr(%s)", fpath);
 		errcnt++;
 		return FTW_STOP;

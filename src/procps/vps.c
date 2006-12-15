@@ -41,7 +41,7 @@ void parse_line(char *line, int n)
 	static int pid_start;
 	pid_t pid;
 	xid_t xid;
-	struct vx_uname uname;
+	vx_uname_t uname;
 	
 	if (n == 0) {
 		if ((pid_pos = strstr(line, "  PID")) == 0) {
@@ -65,7 +65,7 @@ void parse_line(char *line, int n)
 			return;
 		}
 		
-		if ((xid = vx_get_task_xid(pid)) == -1) {
+		if ((xid = vx_task_xid(pid)) == -1) {
 			log_perror("could not get xid for pid %d", pid);
 			xid  = ~(0UL);
 			name = "ERR";
@@ -80,7 +80,7 @@ void parse_line(char *line, int n)
 		else {
 			uname.id = VHIN_CONTEXT;
 			
-			if (vx_get_uname(xid, &uname) == -1) {
+			if (vx_uname_get(xid, &uname) == -1) {
 				log_perror("could not get name for xid %d", xid);
 				name = "ERR";
 			}
