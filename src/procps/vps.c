@@ -139,8 +139,6 @@ void pipe_ps(int argc, char **argv)
 				printf("%s\n", line);
 			else
 				parse_line(line, i);
-			
-			free(line);
 		}
 		
 		close(p[0]);

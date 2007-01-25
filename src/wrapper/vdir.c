@@ -137,7 +137,6 @@ char *lookup_vdir(xid_t xid, char *vdir, size_t len)
 	
 	if (_vdir) {
 		strncpy(vdir, _vdir, len);
-		free(_vdir);
 		return vdir;
 	}
 	
