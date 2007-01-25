@@ -26,7 +26,7 @@
 #include <limits.h>
 #include <vserver.h>
 #include <sys/wait.h>
-#include <lucid/io.h>
+#include <lucid/str.h>
 #include <lucid/open.h>
 
 #include "wrapper.h"
@@ -105,7 +105,7 @@ void lookup_vdir_initpid(xid_t xid)
 	
 	default:
 		close(p[1]);
-		io_read_eof(p[0], &_vdir);
+		str_readline(p[0], &_vdir);
 		close(p[0]);
 		
 		if (waitpid(pid, &status, 0) == -1)

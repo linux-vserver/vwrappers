@@ -26,9 +26,9 @@
 #include <getopt.h>
 #include <vserver.h>
 #include <sys/wait.h>
-#include <lucid/io.h>
 #include <lucid/log.h>
 #include <lucid/open.h>
+#include <lucid/str.h>
 
 static const char *rcsid = "$Id$";
 
@@ -129,7 +129,7 @@ void pipe_ps(int argc, char **argv)
 		close(p[1]);
 		
 		for (i = 0; ; i++) {
-			if ((len = io_read_eol(p[0], &line)) == -1)
+			if ((len = str_readline(p[0], &line)) == -1)
 				log_perror_and_die("io_read_eol");
 			
 			if (!len)

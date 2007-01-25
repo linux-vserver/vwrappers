@@ -31,11 +31,11 @@
 #include <time.h>
 #include <getopt.h>
 
-#include <lucid/argv.h>
 #include <lucid/list.h>
 #include <lucid/misc.h>
 #include <lucid/open.h>
 #include <lucid/str.h>
+#include <lucid/strtok.h>
 
 #define BUF 256
 #define PROCDIR "/proc"
@@ -221,8 +221,8 @@ int main(int argc, char *argv[])
 	struct vs_proc_t *tmp, vsp;
 	struct list_head *pos;
 	vx_uname_t v_name;
-	int lock = 0, fd;
-	char c, *file, buffer[BUF], *vargv[BUF], name[65];
+	int lock = 0, fd, ac;
+	char c, *file, buffer[BUF], **vargv, name[65];
 	uint64_t stime = 0;
 
 	while ((c = getopt(argc, argv, "hv")) != -1) {
@@ -274,7 +274,18 @@ int main(int argc, char *argv[])
 			}
 			close(fd);
 
-			argv_from_str(buffer, vargv, BUF);
+			strtok_t st;
+			
+			if (!strtok_init_str(&st, buffer, " ", 0))
+				fprintf(stderr, "strtok_init_str: %m\n");
+			
+			if ((ac = strtok_count(&st)) < 1)
+				fprintf(stderr, "invalid count\n");
+
+			vargv = calloc(ac + 1, sizeof(char *));
+
+			if (strtok_toargv(&st, vargv) == -1)
+				fprintf(stderr, "strtok_toargv: %m\n");
 			
 			list_for_each(pos, &vsp.list) {
 				tmp=list_entry(pos, struct vs_proc_t, list);

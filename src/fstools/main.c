@@ -87,7 +87,8 @@ int main(int argc, char **argv)
 			case 'x': args.xid = atoi(optarg); break;
 			
 			case 'f':
-				if (flist32_from_str(optarg, iattr_list, &args.flags, &args.mask, '~', ',') == -1)
+				if (flist32_from_str(optarg, iattr_list, &args.flags,
+							&args.mask, '~', ",") == -1)
 					log_perror_and_die("flist32_from_str");
 				
 				break;
