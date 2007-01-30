@@ -167,13 +167,6 @@ void count_path(const char *path, int flags, int bs)
 
 	inotable = NULL;
 
-	struct stat sb;
-
-	if (lstat(path, &sb) == -1) {
-		log_perror("lstat(%s)", path);
-		return;
-	}
-
 	nftw(path, handle_file, 20, flags);
 
 	printf("%s", path);
@@ -183,7 +176,7 @@ void count_path(const char *path, int flags, int bs)
 
 	else if (do_hr) {
 		if (do_space)
-			printf(" %s", pretty_mem(used_blocks * 512 / bs));
+			printf(" %s", pretty_mem(used_blocks / 2));
 		if (do_inode)
 			printf(" %s", pretty_ino(used_inodes));
 	}
