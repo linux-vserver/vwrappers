@@ -17,13 +17,17 @@
 
 #include <unistd.h>
 #include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
+#include <inttypes.h>
 #include <getopt.h>
 #include <vserver.h>
 #include <sys/wait.h>
+
+#define _LUCID_PRINTF_MACROS
+#define _LUCID_SCANF_MACROS
 #include <lucid/log.h>
 #include <lucid/open.h>
+#include <lucid/printf.h>
+#include <lucid/scanf.h>
 #include <lucid/str.h>
 
 static const char *rcsid = "$Id$";
@@ -35,12 +39,12 @@ void parse_line(char *line, int n)
 {
 	char *pid_pos, *name = NULL;
 	static int pid_start;
-	pid_t pid;
-	xid_t xid;
+	pid_t pid = -1;
+	xid_t xid = -1;
 	vx_uname_t uname;
 
 	if (n == 0) {
-		if ((pid_pos = strstr(line, "  PID")) == 0) {
+		if ((pid_pos = str_str(line, "  PID")) == 0) {
 			log_error("PID column not found, dumping ps output as-is");
 			printf("%s\n", line);
 			error_mode = 1;
@@ -54,7 +58,7 @@ void parse_line(char *line, int n)
 	}
 
 	else {
-		pid = atoi(line + pid_start);
+		sscanf(line + pid_start, "%d", &pid);
 
 		if (pid < 0) {
 			log_error("invalid pid %d on line %d", pid, n);
@@ -80,9 +84,6 @@ void parse_line(char *line, int n)
 				log_perror("could not get name for xid %d", xid);
 				name = "ERR";
 			}
-
-			else if (uname.value[0] == '/')
-				name = strrchr(uname.value, '/') + 1;
 
 			else
 				name = uname.value;
@@ -126,7 +127,7 @@ void pipe_ps(int argc, char **argv)
 
 		for (i = 0; ; i++) {
 			if ((len = str_readline(p[0], &line)) == -1)
-				log_perror_and_die("io_read_eol");
+				log_perror_and_die("str_readline");
 
 			if (!len)
 				break;
@@ -175,7 +176,7 @@ int main(int argc, char **argv)
 				break;
 
 			case 'x':
-				xid = atoi(optarg);
+				sscanf(optarg, "%" SCNu32, &xid);
 				break;
 
 			default:

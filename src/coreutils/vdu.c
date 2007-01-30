@@ -17,17 +17,18 @@
 
 #include <unistd.h>
 #include <stdlib.h>
-#include <stdbool.h>
-#include <stdint.h>
 #include <inttypes.h>
-#include <stdio.h>
-#include <sys/stat.h>
 #include <getopt.h>
 #include <ftw.h>
 #include <search.h>
 #include <vserver.h>
+#include <sys/stat.h>
+
+#define _LUCID_PRINTF_MACROS
+#define _LUCID_SCANF_MACROS
 #include <lucid/log.h>
-#include <string.h>
+#include <lucid/printf.h>
+#include <lucid/scanf.h>
 
 static const char *rcsid = "$Id$";
 
@@ -37,9 +38,9 @@ static int errcnt = 0;
 
 static xid_t xid = ~(0UL);
 
-static bool do_space = false;
-static bool do_inode = false;
-static bool do_hr = false;
+static int do_space = 0;
+static int do_inode = 0;
+static int do_hr = 0;
 
 static uint64_t used_blocks = 0;
 static uint64_t used_inodes = 0;
@@ -61,26 +62,52 @@ void usage(int rc)
 	exit(rc);
 }
 
-char  *do_human_readable(uint64_t value) {
-	char *SUFF[] = { " ", "K", "M", "G" };
-	char *buf;
-	int i;
-	float vl;
+static
+char *pretty_mem(uint64_t mem)
+{
+	char *buf = NULL, prefix[] = "KMGTBEZY";
 
-	vl = (float) value;
+	int i, rest = 0;
 
-	for (i=0; i < 4; i++) {
-		if ((int) (vl / 1024) == 0)
-			break;
-		vl /= 1024;
+	mem *= getpagesize() >> 10;
+
+	for (i = 0; mem >= 1024; i++) {
+		rest = ((mem % 1024) * 10) >> 10;
+		mem = mem >> 10;
 	}
-	/* Max value -> 999.99 */
-	if (vl > 999.99)
-		asprintf(&buf, "undef");
-	else
-		asprintf(&buf, "%.2f%s", vl, SUFF[i]);
 
-	return (strdup(buf));
+	if (rest > 0)
+		asprintf(&buf, "%d.%d%c", (int) mem, rest, prefix[i]);
+	else if (mem > 0)
+		asprintf(&buf, "%d.0%c", (int) mem, prefix[i]);
+	else
+		asprintf(&buf, "0K");
+
+	return buf;
+}
+
+static
+char *pretty_ino(uint64_t ino)
+{
+	char *buf = NULL, prefix[] = "KMGTBEZY";
+
+	int i, rest = 0;
+
+	for (i = 0; ino >= 1000; i++) {
+		rest = ((ino % 1000) * 10) / 1000;
+		ino = ino / 1000;
+	}
+
+	if (i == 0)
+		asprintf(&buf, "%d", (int) ino);
+	else if (rest > 0)
+		asprintf(&buf, "%d.%d%c", (int) ino, rest, prefix[i - 1]);
+	else if (ino > 0)
+		asprintf(&buf, "%d.0%c", (int) ino, prefix[i - 1]);
+	else
+		asprintf(&buf, "0");
+
+	return buf;
 }
 
 static
@@ -111,7 +138,6 @@ int handle_file(const char *fpath, const struct stat *sb,
 		return FTW_STOP;
 	}
 
-	/* TODO: bail out if no IATTR_TAG? */
 	if (!(attr.mask & IATTR_TAG))
 		return FTW_CONTINUE;
 
@@ -132,7 +158,7 @@ int handle_file(const char *fpath, const struct stat *sb,
 }
 
 static
-void count_path(const char *path, int flags, int bs)
+void count_path(const char *path, int flags)
 {
 	int olderrcnt = errcnt;
 
@@ -143,6 +169,13 @@ void count_path(const char *path, int flags, int bs)
 
 	inotable = NULL;
 
+	struct stat sb;
+
+	if (lstat(path, &sb) == -1) {
+		log_perror("lstat(%s)", path);
+		return;
+	}
+
 	nftw(path, handle_file, 20, flags);
 
 	printf("%s", path);
@@ -150,13 +183,16 @@ void count_path(const char *path, int flags, int bs)
 	if (errcnt > olderrcnt)
 		printf(" ERR");
 
+	else if (do_hr) {
+		if (do_space)
+			printf(" %s", pretty_mem(used_blocks * sb.st_blksize));
+		if (do_inode)
+			printf(" %s", pretty_ino(used_inodes));
+	}
+	
 	else {
-		if (do_hr)
-			printf(" %s", do_human_readable (used_blocks * 512 / bs));
-
-		else if (do_space)
-			printf(" %" PRIu64, used_blocks * 512 / bs);
-
+		if (do_space)
+			printf(" %" PRIu64, used_blocks * sb.st_blksize);
 		if (do_inode)
 			printf(" %" PRIu64, used_inodes);
 	}
@@ -166,7 +202,7 @@ void count_path(const char *path, int flags, int bs)
 
 int main (int argc, char **argv)
 {
-	int i, c, bs = 1024, flags = FTW_MOUNT|FTW_PHYS|FTW_CHDIR|FTW_ACTIONRETVAL;
+	int i, c, flags = FTW_MOUNT|FTW_PHYS|FTW_CHDIR|FTW_ACTIONRETVAL;
 
 	log_options_t log_options = {
 		.ident  = argv[0],
@@ -177,7 +213,7 @@ int main (int argc, char **argv)
 	atexit(log_close);
 
 	while (1) {
-		c = getopt(argc, argv, "+hvcsirb:x:");
+		c = getopt(argc, argv, "+hvcsirx:");
 
 		if (c == -1)
 			break;
@@ -188,12 +224,11 @@ int main (int argc, char **argv)
 
 			case 'c': flags &= ~FTW_MOUNT; break;
 
-			case 's': do_space = true; break;
-			case 'i': do_inode = true; break;
-			case 'r': do_hr = true; break;
+			case 's': do_space = 1; break;
+			case 'i': do_inode = 1; break;
+			case 'r': do_hr = 1; break;
 
-			case 'b': bs  = atoi(optarg); break;
-			case 'x': xid = atoi(optarg); break;
+			case 'x': sscanf(optarg, "%" SCNu32, &xid); break;
 
 			default: usage(EXIT_FAILURE);
 		}
@@ -206,10 +241,10 @@ int main (int argc, char **argv)
 		log_error_and_die("no action specified. use -s and/or -i");
 
 	if (optind == argc)
-		count_path(".", flags, bs);
+		count_path(".", flags);
 
 	else for (i = optind; i < argc; i++)
-		count_path(argv[i], flags, bs);
+		count_path(argv[i], flags);
 
 	return errcnt > 0 ? EXIT_FAILURE : EXIT_SUCCESS;
 }

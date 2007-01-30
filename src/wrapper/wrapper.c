@@ -17,11 +17,15 @@
 
 #include <unistd.h>
 #include <stdlib.h>
-#include <stdio.h>
-#include <limits.h>
+#include <inttypes.h>
 #include <vserver.h>
+
+#define _LUCID_PRINTF_MACROS
+#define _LUCID_SCANF_MACROS
 #include <lucid/chroot.h>
 #include <lucid/log.h>
+#include <lucid/printf.h>
+#include <lucid/scanf.h>
 
 #include "wrapper.h"
 
@@ -31,7 +35,7 @@ int default_wrapper(int argc, char **argv, char *proc, int needxid)
 {
 	int c;
 	xid_t xid = 1;
-	char vdir[PATH_MAX];
+	char vdir[64];
 
 	log_options_t log_options = {
 		.ident  = argv[0],
@@ -57,7 +61,7 @@ int default_wrapper(int argc, char **argv, char *proc, int needxid)
 				break;
 
 			case 'x':
-				xid = atoi(optarg);
+				sscanf(optarg, "%" SCNu32, &xid);
 				break;
 
 			default:
@@ -75,7 +79,7 @@ int default_wrapper(int argc, char **argv, char *proc, int needxid)
 		if (vx_info(xid, NULL) == -1)
 			log_perror_and_die("vx_get_info");
 
-		if (lookup_vdir(xid, vdir, PATH_MAX) == NULL)
+		if (lookup_vdir(xid, vdir, 64) == NULL)
 			log_error_and_die("could not find vserver dir");
 
 		if (ns_enter(xid, 0) == -1)

@@ -16,13 +16,16 @@
 // 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include <stdlib.h>
+#include <inttypes.h>
 #include <getopt.h>
 #include <ftw.h>
 
 #define _LUCID_PRINTF_MACROS
+#define _LUCID_SCANF_MACROS
 #include <lucid/flist.h>
 #include <lucid/log.h>
 #include <lucid/printf.h>
+#include <lucid/scanf.h>
 
 #include "fstool.h"
 
@@ -82,7 +85,7 @@ int main(int argc, char **argv)
 
 			/* xid/flag options */
 			case 'x':
-				args.xid = atoi(optarg);
+				sscanf(optarg, "%" SCNu32, &args.xid);
 
 				if (args.xid == 1 || args.xid > 65535)
 					log_error_and_die("invalid xid: %d", args.xid);
