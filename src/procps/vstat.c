@@ -111,7 +111,7 @@ void show_vx(xid_t xid)
 	else if (vx_sched_info(xid, &schedb) == -1)
 		log_perror("vx_sched_info(%d, 0)", xid);
 
-	printf("%-5u %-5u %5s %5s %3d %11s %11s %11s %s\n",
+	else printf("%-5u %-5u %5s %5s %3d %11s %11s %11s %s\n",
 			xid, (int) limnproc.value,
 			pretty_mem(limvm.value), pretty_mem(limrss.value), 0,
 			pretty_time(schedb.user_msec), pretty_time(schedb.sys_msec),
@@ -125,12 +125,10 @@ void show_vx(xid_t xid)
 	for (i = 1; i < nr_cpus; i++) {
 		schedb.cpu_id = i;
 
-		if (vx_sched_info(xid, &schedb) == -1) {
+		if (vx_sched_info(xid, &schedb) == -1)
 			log_perror("vx_sched_info(%d, %d)", xid, i);
-			break;
-		}
 
-		printf("%-5u %-5s %5s %5s %3d %11s %11s %11s %s\n",
+		else printf("%-5u %-5s %5s %5s %3d %11s %11s %11s %s\n",
 				xid, "", "", "", i,
 				pretty_time(schedb.user_msec), pretty_time(schedb.sys_msec),
 				"", unameb.value);
@@ -152,6 +150,7 @@ int main(int argc, char **argv)
 		       "  TASKS  - Number of processes\n"
 		       "  VM     - Number of virtual memory pages\n"
 		       "  RSS    - Number of memory pages locked into RAM\n"
+		       "  CPU    - Processor ID\n"
 		       "  UTIME  - User-mode time accumulated\n"
 		       "  STIME  - Kernel-mode time accumulated\n"
 		       "  UPTIME - Context lifetime\n"
@@ -167,7 +166,7 @@ int main(int argc, char **argv)
 	nr_cpus = sysconf(_SC_NPROCESSORS_ONLN);
 
 	printf("%-5s %-5s %5s %5s %3s %11s %11s %11s %s\n",
-			"XID", "TASKS", "VM", "RSS", "CPU", "UTIME", "STIME", "UPTIME", "NAME");
+			"XID", "NPROC", "VM", "RSS", "CPU", "UTIME", "STIME", "UPTIME", "NAME");
 
 	int i;
 
