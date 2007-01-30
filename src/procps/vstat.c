@@ -17,16 +17,12 @@
 
 #include <unistd.h>
 #include <stdlib.h>
-#include <ftw.h>
 #include <vserver.h>
 #include <sys/resource.h>
 
 #define _LUCID_PRINTF_MACROS
-#include <lucid/flist.h>
 #include <lucid/log.h>
-#include <lucid/misc.h>
 #include <lucid/printf.h>
-#include <lucid/str.h>
 
 static const char *rcsid = "$Id$";
 
@@ -78,13 +74,13 @@ char *pretty_mem(uint64_t mem)
 	else if (mem > 0)
 		asprintf(&buf, "%d.0%c", (int) mem, prefix[i]);
 	else
-		buf = str_dup("0K");
+		asprintf(&buf, "0K");
 
 	return buf;
 }
 
 static
-int show_vx(xid_t xid)
+void show_vx(xid_t xid)
 {
 	vx_stat_t statb;
 	vx_sched_info_t schedb;
@@ -122,7 +118,7 @@ int show_vx(xid_t xid)
 			pretty_time(statb.uptime/1000000), unameb.value);
 
 	if (nr_cpus < 2)
-		return FTW_SKIP_SUBTREE;
+		return;
 
 	int i;
 
@@ -139,41 +135,10 @@ int show_vx(xid_t xid)
 				pretty_time(schedb.user_msec), pretty_time(schedb.sys_msec),
 				"", unameb.value);
 	}
-
-	return FTW_SKIP_SUBTREE;
-}
-
-static
-int handle_file(const char *fpath, const struct stat *sb,
-		int tflag, struct FTW *ftwb)
-{
-	switch(tflag) {
-	case FTW_D:
-		if (!str_isdigit(fpath + ftwb->base))
-			return FTW_CONTINUE;
-
-		nr_running++;
-
-		xid_t xid = atoi(fpath + ftwb->base);
-
-		return show_vx(xid);
-
-	case FTW_DNR:
-	case FTW_NS:
-		log_error("cannot stat: %s", fpath);
-		return FTW_STOP;
-
-	default:
-		break;
-	}
-
-	return FTW_CONTINUE;
 }
 
 int main(int argc, char **argv)
 {
-	int flags = FTW_PHYS|FTW_ACTIONRETVAL;
-
 	log_options_t log_options = {
 		.ident  = argv[0],
 		.stderr = true,
@@ -199,16 +164,20 @@ int main(int argc, char **argv)
 	log_init(&log_options);
 	atexit(log_close);
 
-	if (!isdir("/proc/virtual"))
-		log_perror_and_die("isdir(/proc/virtual)");
-
 	nr_cpus = sysconf(_SC_NPROCESSORS_ONLN);
 
 	printf("%-5s %-5s %5s %5s %3s %11s %11s %11s %s\n",
 			"XID", "TASKS", "VM", "RSS", "CPU", "UTIME", "STIME", "UPTIME", "NAME");
 
-	if (nftw("/proc/virtual", handle_file, 20, flags) == -1)
-		log_perror_and_die("nftw(/proc/virtual)");
+	int i;
+
+	for (i = 2; i < 65535; i++) {
+		if (vx_info(i, NULL) == -1)
+			continue;
+
+		nr_running++;
+		show_vx(i);
+	}
 
 	if (nr_running < 1)
 		printf("no running contexts found ...\n");
