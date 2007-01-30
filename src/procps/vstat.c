@@ -1,4 +1,4 @@
-// Copyright 2006 Remo Lemma <coloss7@gmail.com>
+// Copyright 2006 Benedikt Böhm <hollow@gentoo.org>
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -15,338 +15,180 @@
 // Free Software Foundation, Inc.,
 // 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-#ifndef _GNU_SOURCE
-#define _GNU_SOURCE
-#endif
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <errno.h>
-#include <vserver.h>
 #include <unistd.h>
-#include <dirent.h>
-#include <ctype.h>
-#include <inttypes.h>
-#include <time.h>
-#include <getopt.h>
+#include <stdlib.h>
+#include <ftw.h>
+#include <vserver.h>
+#include <sys/resource.h>
 
-#include <lucid/list.h>
+#define _LUCID_PRINTF_MACROS
+#include <lucid/flist.h>
+#include <lucid/log.h>
 #include <lucid/misc.h>
-#include <lucid/open.h>
+#include <lucid/printf.h>
 #include <lucid/str.h>
-#include <lucid/strtok.h>
-
-#define BUF 256
-#define PROCDIR "/proc"
-#define UPTIME_FILE "/proc/uptime"
-
-#define min(x, y) (((x)<=(y))?(x):(y))
 
 static const char *rcsid = "$Id$";
 
-xid_t masterxid = 1, max_xid = 0;
-static uint64_t pagesize, hz, uptime;
+static int nr_running = 0;
 
-struct vs_proc_t{
-	struct list_head list;
-	char vname[65];
-	xid_t xid;
-	uint64_t procs;
-	uint64_t vm;
-	uint64_t rss;
-	uint64_t uptime;
-	uint64_t utime;
-	uint64_t ctime;
-};
-
-void usage (int rc)
+static
+char *pretty_time(uint64_t msec)
 {
-	fprintf(stdout,
-		"Usage: vserver-stat takes no arguments\n\n"
-		"Information about vserver-stat output:\n"
-		"XID:   Context ID\n"
-		"PROCS: Number of running processes\n"
-		"VS:    Number of Virtual memory pages\n"
-		"RSS:   Resident Set Size\n"
-		"UTIME  User-mode time accumulated\n"
-		"CTIME: Kernel-mode time accumulated\n"
-		"NAME:  Vserver Name\n");
-	exit(rc);
+	char *buf = NULL;
+	int d = 0, h = 0, m = 0;
+
+	msec /= 60000;
+	m = msec % 60;
+	msec /= 60;
+	h = msec % 24;
+	msec /= 24;
+	d = msec;
+
+	asprintf(&buf, "%4dd%02dh%02dm", d, h, m);
+
+	return buf;
 }
 
-uint64_t mst(uint64_t value)
+static
+char *pretty_mem(uint64_t mem)
 {
-	return (value*1000llu/hz);
-}
+	char *buf = NULL, prefix[] = "KMGTBEZY";
 
-char *convt(uint64_t value) 
-{
-	uint64_t h = 0, m = 0, s = 0, ms = 0, d  = 0, y = 0;
-	struct tm *tt;
-	time_t rtime;
-	char year[32], *ttime;
+	int i, rest = 0;
 
-	time (&rtime);
-	tt = localtime(&rtime);
-	strftime(year, sizeof(year) - 1, "%Y", tt);
+	mem *= getpagesize() >> 10;
 
-	ms = value %1000;
-	value /= 1000;
-	s = value %60;
-	value /= 60;
-	m = value %60;
-	value /= 60;
-	h = value %24;
-	value /= 24;	
-
-
-	/* Max value -> 999 years */
-	if (value > 999*365) {
-		asprintf(&ttime, "undef");
-		return (strdup(ttime));
+	for (i = 0; mem >= 1024; i++) {
+		rest = ((mem % 1024) * 1000) >> 10;
+		mem = mem >> 10;
 	}
 
-	while (value > 999) {
-		if (atoi(year) %4 == 0) {
-			y = value %366;
-			if (y > 0)
-				value /= 366;
-				if (y >= 4)
-					value += ((y %4) - 1);
-		}
-		else {
-			y = value %365; 
-			if (y > 0)
-				value /= 365;
-				if (y >= 4)
-					value += (y %4);
-		}
-	}
-
-	d = value;
-
-	if (y > 0) {
-		asprintf(&ttime, "%" PRIu64 "y%" PRIu64 "d%" PRIu64, y, d, h);
-		return (strdup(ttime));
-	}
-	else if (d > 0) {
-		asprintf(&ttime, "%" PRIu64 "d%" PRIu64 "h%" PRIu64, d, h, m);
-		return (strdup(ttime));
-	}
-	else if (h > 0) {
-		asprintf(&ttime, "%" PRIu64 "h%" PRIu64 "m%" PRIu64, h, m, s);
-		return (strdup(ttime));
-	}
-	else if (m > 0) {
-		asprintf(&ttime, "%" PRIu64 "m%" PRIu64 "s%" PRIu64, m, s, ms);
-		return (strdup(ttime));
-	}
-	else if (s > 0) {
-		asprintf(&ttime, "%" PRIu64 "s%" PRIu64, s, ms);
-		return (strdup(ttime));
-	}
-	else {
-		asprintf(&ttime, "%" PRIu64 "ms", ms);
-		return (strdup(ttime));
-	}
-}
-
-char  *tail_memdata(uint64_t value) {
-	char *SUFF[] = { " ", "K", "M", "G" };
-	char *buf;
-	int i;
-	float vl;
-
-	vl = (float) value;
-
-	for (i=0; i < 4; i++) {
-		if ((int) (vl / 1024) == 0)
-			break;
-		vl /= 1024;
-	}
-	/* Max value -> 999.99 */
-	if (vl > 999.99)
-		asprintf(&buf, "undef");
+	if (rest > 0)
+		asprintf(&buf, "%d.%03d%c", (int) mem, rest, prefix[i]);
+	else if (mem > 0)
+		asprintf(&buf, "%d.0%c", (int) mem, prefix[i]);
 	else
-		asprintf(&buf, "%.2f%s", vl, SUFF[i]);
+		buf = str_dup("0K");
 
-	return (strdup(buf));
+	return buf;
 }
 
-uint64_t get_uptime() {
-	int fd;
-	uint64_t vl;
-	char buffer[BUF*4], pt[BUF*4];
-
-	if ((fd = open_read(UPTIME_FILE)) == -1) {
-		fprintf(stderr, "open(%s): %s\n", UPTIME_FILE, strerror(errno));
-		exit(EXIT_FAILURE);
-	}
-	if (read(fd, buffer, sizeof(buffer)) == -1) {
-		fprintf(stderr, "read(%s): %s\n", UPTIME_FILE, strerror(errno));
-		exit(EXIT_FAILURE);
-	}
-	close(fd);
-
-	strncat(pt, buffer, strchr(buffer, ' ')-buffer+1);
-
-	vl = 1000 * atof(pt);
-	return (vl);
-}
-
-char *tail_name (char *vname) 
-{	
-	char *pch;
-	pch = strrchr(vname, '/') + 1;
-
-	return strdup(pch);
-}
-
-char *get_vname (xid_t xid, vx_uname_t uname)
+static
+int show_vx(xid_t xid)
 {
-	uname.id = VHIN_CONTEXT;
-	
-	if (vx_uname_get(xid, &uname) == -1)
-		return NULL;
-	return strdup(uname.value);
+	vx_stat_t statb;
+	vx_sched_info_t schedb;
+	vx_limit_stat_t limvm, limrss;
+	vx_uname_t unameb;
+
+	if (vx_stat(xid, &statb) == -1) {
+		log_perror("vx_stat(%d)", xid);
+		return FTW_STOP;
+	}
+
+	if (vx_sched_info(xid, &schedb) == -1) {
+		log_perror("vx_sched_info(%d)", xid);
+		return FTW_STOP;
+	}
+
+	limvm.id = RLIMIT_AS;
+
+	if (vx_limit_stat(xid, &limvm) == -1) {
+		log_perror("vx_limit_stat(VM, %d)", xid);
+		return FTW_STOP;
+	}
+
+	limvm.id = RLIMIT_RSS;
+
+	if (vx_limit_stat(xid, &limrss) == -1) {
+		log_perror("vx_limit_stat(RSS, %d)", xid);
+		return FTW_STOP;
+	}
+
+	unameb.id = VHIN_CONTEXT;
+
+	if (vx_uname_get(xid, &unameb) == -1) {
+		log_perror("vx_uname_get(CONTEXT, %d)", xid);
+		return FTW_STOP;
+	}
+
+	printf("%-5d %-5d %6d %6d %11s %11s %11s %s\n",
+			xid, statb.tasks,
+			pretty_mem(limvm.value), pretty_mem(limrss.value),
+			pretty_time(schedb.user_msec), pretty_time(schedb.sys_msec),
+			pretty_time(statb.uptime), unameb.value);
+
+	return FTW_SKIP_SUBTREE;
 }
 
-int main(int argc, char *argv[])
+static
+int handle_file(const char *fpath, const struct stat *sb,
+		int tflag, struct FTW *ftwb)
 {
-	DIR *dirt;
-	struct dirent *ditp;
-	xid_t xid, lxid;
-	pid_t pid;
-	struct vs_proc_t *tmp, vsp;
-	struct list_head *pos;
-	vx_uname_t v_name;
-	int lock = 0, fd, ac;
-	char c, *file, buffer[BUF], **vargv, name[65];
-	uint64_t stime = 0;
+	switch(tflag) {
+	case FTW_D:
+		if (!str_isdigit(fpath + ftwb->base))
+			return FTW_CONTINUE;
 
-	while ((c = getopt(argc, argv, "hv")) != -1) {
-		switch (c) {
-			case 'h': usage(EXIT_SUCCESS);
-			case 'v': printf("%s\n", rcsid); exit(EXIT_SUCCESS); break;
-			default: usage(EXIT_FAILURE);
-		}
+		nr_running++;
+
+		xid_t xid = atoi(fpath + ftwb->base);
+
+		return show_vx(xid);
+
+	case FTW_DNR:
+	case FTW_NS:
+		log_error("cannot stat: %s", fpath);
+		return FTW_STOP;
+
+	default:
+		break;
 	}
 
-	/* Init Values */ 
-	pagesize = sysconf(_SC_PAGESIZE);
-	hz = sysconf(_SC_CLK_TCK);
-	uptime = get_uptime();
+	return FTW_CONTINUE;
+}
 
-	INIT_LIST_HEAD(&vsp.list);
+int main(int argc, char **argv)
+{
+	int flags = FTW_PHYS|FTW_ACTIONRETVAL;
 
-	/* Migrate to root server */
-	if (vx_migrate(masterxid, NULL) == -1) {
-		fprintf(stderr, "cannot migrate to root server, xid = 1\n");
+	log_options_t log_options = {
+		.ident  = argv[0],
+		.stderr = true,
+	};
+
+	if (argc > 1) {
+		printf("Usage: vstat takes no arguments\n"
+		       "\n"
+		       "The following information is shown:\n"
+		       "  XID    - Context ID\n"
+		       "  TASKS  - Number of processes\n"
+		       "  VM     - Number of virtual memory pages\n"
+		       "  RSS    - Number of memory pages locked into RAM\n"
+		       "  UTIME  - User-mode time accumulated\n"
+		       "  STIME  - Kernel-mode time accumulated\n"
+		       "  UPTIME - Context lifetime\n"
+		       "  NAME   - Context name\n"
+		       "\n"
+		       "%s\n", rcsid);
 		exit(EXIT_FAILURE);
 	}
 
-	if ((dirt = opendir(PROCDIR)) == NULL) {
-		fprintf(stderr, "opendir(%s): %s\n", PROCDIR, strerror(errno));
-		exit(EXIT_FAILURE);
-	}
+	log_init(&log_options);
+	atexit(log_close);
 
-	/* Parse '/proc' */
-	while ((ditp = readdir(dirt)) != NULL) {
-		lock=0;
-		pid = atoi(ditp->d_name);
-		if (!isdigit(*ditp->d_name))
-			continue;
-		xid = vx_task_xid(pid);
-		if (xid > 1 || xid == 0) {
-			tmp= (struct vs_proc_t *) malloc(sizeof(struct vs_proc_t));
+	if (!isdir("/proc/virtual"))
+		log_perror_and_die("isdir(/proc/virtual)");
 
-			snprintf(buffer, sizeof(buffer) - 1, "%s/%d", PROCDIR, pid);
-			file = str_path_concat(buffer, "stat");
+	printf("%-5s %-5s %6s %6s %11s %11s %11s %s\n",
+			"XID", "TASKS", "VM", "RSS", "UTIME", "STIME", "UPTIME", "NAME");
 
-			if ((fd = open_read(file)) == -1) {
-				fprintf(stderr, "PID '%d', xid '%d' - open(%s): %s\n", pid, xid, file, strerror(errno));
-				exit(EXIT_FAILURE);
-			}
-			if ((read(fd, buffer, sizeof(buffer))) == -1) {
-				fprintf(stderr, "PID '%d', xid '%d' - read(%s): %s\n", pid, xid, file, strerror(errno));
-				exit(EXIT_FAILURE);
-			}
-			close(fd);
+	if (nftw("/proc/virtual", handle_file, 20, flags) == -1)
+		log_perror_and_die("nftw(/proc/virtual)");
 
-			strtok_t st;
-			
-			if (!strtok_init_str(&st, buffer, " ", 0))
-				fprintf(stderr, "strtok_init_str: %m\n");
-			
-			if ((ac = strtok_count(&st)) < 1)
-				fprintf(stderr, "invalid count\n");
+	if (nr_running < 1)
+		printf("no running contexts found ...");
 
-			vargv = calloc(ac + 1, sizeof(char *));
-
-			if (strtok_toargv(&st, vargv) == -1)
-				fprintf(stderr, "strtok_toargv: %m\n");
-			
-			list_for_each(pos, &vsp.list) {
-				tmp=list_entry(pos, struct vs_proc_t, list);
-				/* Update existing xid */
-				if (tmp->xid == xid) {
-					lock = 1;
-					stime = mst(strtol(vargv[21], &vargv[21], 10));
-					tmp->procs++;
-					tmp->vm += strtol(vargv[22], &vargv[22], 10);
-					tmp->rss += strtol(vargv[23], &vargv[23], 10);
-					tmp->utime += ( mst(strtol(vargv[13], &vargv[13], 10)) + mst(strtol(vargv[15], &vargv[15], 10)) );
-					tmp->ctime += ( mst(strtol(vargv[14], &vargv[14], 10)) + mst(strtol(vargv[16], &vargv[16], 10)) );
-					tmp->uptime = min(tmp->uptime, stime); 
-				}
-			}
-			/* New xid */
-			if (lock != 1) {
-				tmp= (struct vs_proc_t *) malloc(sizeof(struct vs_proc_t));
-				if (xid != 0) {
-					if (get_vname(xid, v_name) == NULL) {
-						fprintf(stderr, "cannot retrive vserver name for xid '%d'\n", xid);
-						exit(EXIT_FAILURE);
-					}
-					snprintf(name, sizeof(name) - 1, get_vname(xid, v_name));
-						if (name[0] == '/')
-							snprintf(tmp->vname, sizeof(tmp->vname) - 1, tail_name(name));
-						else
-							snprintf(tmp->vname, sizeof(tmp->vname) - 1, name);
-				}
-				else
-					snprintf(tmp->vname, sizeof(tmp->vname) - 1, "root server");
-				tmp->xid = xid;
-				tmp->utime = ( mst(strtol(vargv[13], &vargv[13], 10)) + mst(strtol(vargv[15], &vargv[15], 10)) );
-				tmp->ctime = ( mst(strtol(vargv[14], &vargv[14], 10)) + mst(strtol(vargv[16], &vargv[16], 10)) );
-				tmp->vm = strtol(vargv[22], &vargv[22], 10);
-				tmp->rss = strtol(vargv[23], &vargv[23], 10);
-				tmp->procs = 1;
-				tmp->uptime = mst(strtol(vargv[21], &vargv[21], 10));
-				list_add(&(tmp->list), &(vsp.list));
-				
-				if (xid > max_xid) 
-					max_xid = xid;
-			}
-		}
-	}
-	closedir(dirt);
-
-	fprintf(stdout, "XID   PROCS   VM      RRS     UPTIME     UTIME      CTIME      NAME\n");
-	/* Ording list... Any other solution? */
-	for (lxid=0;lxid<=max_xid;lxid++) {
-		tmp = (struct vs_proc_t *) malloc(sizeof(struct vs_proc_t));
-
-		list_for_each(pos, &vsp.list) {
-			tmp=list_entry(pos, struct vs_proc_t, list);		
-			if (tmp->xid == lxid) {
-				fprintf(stdout, "%-6d%-8" PRIu64 "%-8s%-8s%-11s%-11s%-11s%-14s\n", 
-						tmp->xid, tmp->procs, tail_memdata(tmp->vm), 
-						tail_memdata(tmp->rss*pagesize), 
-						convt(uptime - tmp->uptime), convt(tmp->utime), convt(tmp->ctime), tmp->vname);
-			}
-		}
-	}
-	exit(EXIT_SUCCESS);
+	return EXIT_SUCCESS;
 }
