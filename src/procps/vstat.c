@@ -31,6 +31,7 @@
 static const char *rcsid = "$Id$";
 
 static int nr_running = 0;
+static int nr_cpus = 1;
 
 static
 char *pretty_time(uint64_t msec)
@@ -87,11 +88,6 @@ int show_vx(xid_t xid)
 		return FTW_STOP;
 	}
 
-	if (vx_sched_info(xid, &schedb) == -1) {
-		log_perror("vx_sched_info(%d)", xid);
-		return FTW_STOP;
-	}
-
 	limvm.id = RLIMIT_AS;
 
 	if (vx_limit_stat(xid, &limvm) == -1) {
@@ -99,7 +95,7 @@ int show_vx(xid_t xid)
 		return FTW_STOP;
 	}
 
-	limvm.id = RLIMIT_RSS;
+	limrss.id = RLIMIT_RSS;
 
 	if (vx_limit_stat(xid, &limrss) == -1) {
 		log_perror("vx_limit_stat(RSS, %d)", xid);
@@ -113,11 +109,38 @@ int show_vx(xid_t xid)
 		return FTW_STOP;
 	}
 
-	printf("%-5d %-5d %6d %6d %11s %11s %11s %s\n",
+	schedb.cpu_id = 0;
+
+	if (vx_sched_info(xid, &schedb) == -1) {
+		log_perror("vx_sched_info(%d)", xid);
+		return FTW_STOP;
+	}
+
+	printf("%-5d %-5d %6d %6d %11s %11s %11s %s%s\n",
 			xid, statb.tasks,
 			pretty_mem(limvm.value), pretty_mem(limrss.value),
 			pretty_time(schedb.user_msec), pretty_time(schedb.sys_msec),
-			pretty_time(statb.uptime), unameb.value);
+			pretty_time(statb.uptime), unameb.value,
+			nr_cpus > 1 ? "[0]" : "");
+
+	if (nr_cpus < 2)
+		return FTW_SKIP_SUBTREE;
+
+	int i;
+
+	for (i = 1; i < nr_cpus; i++) {
+		schedb.cpu_id = i;
+
+		if (vx_sched_info(xid, &schedb) == -1) {
+			log_perror("vx_sched_info(%d)", xid);
+			return FTW_STOP;
+		}
+
+		printf("%-5s %-5s %6s %6s %11s %11s %11s %s[%d]\n",
+				xid, "", "", "",
+				pretty_time(schedb.user_msec), pretty_time(schedb.sys_msec),
+				"", unameb.value, i);
+	}
 
 	return FTW_SKIP_SUBTREE;
 }
@@ -180,6 +203,8 @@ int main(int argc, char **argv)
 
 	if (!isdir("/proc/virtual"))
 		log_perror_and_die("isdir(/proc/virtual)");
+
+	nr_cpus = sysconf(_SC_NPROCESSORS_ONLN);
 
 	printf("%-5s %-5s %6s %6s %11s %11s %11s %s\n",
 			"XID", "TASKS", "VM", "RSS", "UTIME", "STIME", "UPTIME", "NAME");

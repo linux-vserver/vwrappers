@@ -25,7 +25,7 @@
 
 const char *rcsid = "$Id$";
 
-const char *optstring = "+hvRcf:";
+const char *optstring = "hvRcf:";
 
 void usage(int rc)
 {

@@ -25,7 +25,7 @@
 
 const char *rcsid = "$Id$";
 
-const char *optstring = "+hvRcx:";
+const char *optstring = "hvRcx:";
 
 void usage(int rc)
 {
@@ -41,7 +41,7 @@ void usage(int rc)
 }
 
 int handle_file(const char *fpath, const struct stat *sb,
-                int tflag, struct FTW *ftwb)
+		int tflag, struct FTW *ftwb)
 {
 	ix_attr_t attr = {
 		.filename = fpath + ftwb->base,
