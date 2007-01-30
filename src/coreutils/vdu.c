@@ -69,8 +69,6 @@ char *pretty_mem(uint64_t mem)
 
 	int i, rest = 0;
 
-	mem *= getpagesize() >> 10;
-
 	for (i = 0; mem >= 1024; i++) {
 		rest = ((mem % 1024) * 10) >> 10;
 		mem = mem >> 10;
@@ -158,7 +156,7 @@ int handle_file(const char *fpath, const struct stat *sb,
 }
 
 static
-void count_path(const char *path, int flags)
+void count_path(const char *path, int flags, int bs)
 {
 	int olderrcnt = errcnt;
 
@@ -185,14 +183,14 @@ void count_path(const char *path, int flags)
 
 	else if (do_hr) {
 		if (do_space)
-			printf(" %s", pretty_mem(used_blocks * sb.st_blksize));
+			printf(" %s", pretty_mem(used_blocks * 512 / bs));
 		if (do_inode)
 			printf(" %s", pretty_ino(used_inodes));
 	}
-	
+
 	else {
 		if (do_space)
-			printf(" %" PRIu64, used_blocks * sb.st_blksize);
+			printf(" %" PRIu64, used_blocks * 512 / bs);
 		if (do_inode)
 			printf(" %" PRIu64, used_inodes);
 	}
@@ -202,7 +200,7 @@ void count_path(const char *path, int flags)
 
 int main (int argc, char **argv)
 {
-	int i, c, flags = FTW_MOUNT|FTW_PHYS|FTW_CHDIR|FTW_ACTIONRETVAL;
+	int i, c, bs = 1024, flags = FTW_MOUNT|FTW_PHYS|FTW_CHDIR|FTW_ACTIONRETVAL;
 
 	log_options_t log_options = {
 		.ident  = argv[0],
@@ -213,7 +211,7 @@ int main (int argc, char **argv)
 	atexit(log_close);
 
 	while (1) {
-		c = getopt(argc, argv, "+hvcsirx:");
+		c = getopt(argc, argv, "+hvcsirb:x:");
 
 		if (c == -1)
 			break;
@@ -228,6 +226,7 @@ int main (int argc, char **argv)
 			case 'i': do_inode = 1; break;
 			case 'r': do_hr = 1; break;
 
+			case 'b': sscanf(optarg, "%d", &bs); break;
 			case 'x': sscanf(optarg, "%" SCNu32, &xid); break;
 
 			default: usage(EXIT_FAILURE);
@@ -241,10 +240,10 @@ int main (int argc, char **argv)
 		log_error_and_die("no action specified. use -s and/or -i");
 
 	if (optind == argc)
-		count_path(".", flags);
+		count_path(".", flags, bs);
 
 	else for (i = optind; i < argc; i++)
-		count_path(argv[i], flags);
+		count_path(argv[i], flags, bs);
 
 	return errcnt > 0 ? EXIT_FAILURE : EXIT_SUCCESS;
 }
