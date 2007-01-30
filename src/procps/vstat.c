@@ -116,7 +116,7 @@ int show_vx(xid_t xid)
 		return FTW_STOP;
 	}
 
-	printf("%-5u %-5u %6s %6s %11s %11s %11s %s%s\n",
+	printf("%-5u %-5u %7s %7s %11s %11s %11s %s%s\n",
 			xid, statb.tasks,
 			pretty_mem(limvm.value), pretty_mem(limrss.value),
 			pretty_time(schedb.user_msec), pretty_time(schedb.sys_msec),
@@ -136,7 +136,7 @@ int show_vx(xid_t xid)
 			return FTW_STOP;
 		}
 
-		printf("%-5u %-5s %6s %6s %11s %11s %11s %s[%d]\n",
+		printf("%-5u %-5s %7s %7s %11s %11s %11s %s[%d]\n",
 				xid, "", "", "",
 				pretty_time(schedb.user_msec), pretty_time(schedb.sys_msec),
 				"", unameb.value, i);
@@ -206,7 +206,7 @@ int main(int argc, char **argv)
 
 	nr_cpus = sysconf(_SC_NPROCESSORS_ONLN);
 
-	printf("%-5s %-5s %6s %6s %11s %11s %11s %s\n",
+	printf("%-5s %-5s %7s %7s %11s %11s %11s %s\n",
 			"XID", "TASKS", "VM", "RSS", "UTIME", "STIME", "UPTIME", "NAME");
 
 	if (nftw("/proc/virtual", handle_file, 20, flags) == -1)
