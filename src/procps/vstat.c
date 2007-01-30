@@ -37,16 +37,24 @@ static
 char *pretty_time(uint64_t msec)
 {
 	char *buf = NULL;
-	int d = 0, h = 0, m = 0;
+	int d = 0, h = 0, m = 0, s = 0, ms = 0;
 
-	msec /= 60000;
+	ms = msec % 1000;
+	msec /= 1000;
+	s = msec % 60;
+	msec /= 60;
 	m = msec % 60;
 	msec /= 60;
 	h = msec % 24;
 	msec /= 24;
 	d = msec;
 
-	asprintf(&buf, "%4dd%02dh%02dm", d, h, m);
+	if (d > 0)
+		asprintf(&buf, "%4dd%02dh%02dm", d, h, m);
+	else if (h > 0)
+		asprintf(&buf, "%4dh%02dm%02ds", h, m, s);
+	else
+		asprintf(&buf, "%2dm%02ds%03dms", m, s, ms);
 
 	return buf;
 }
@@ -61,12 +69,12 @@ char *pretty_mem(uint64_t mem)
 	mem *= getpagesize() >> 10;
 
 	for (i = 0; mem >= 1024; i++) {
-		rest = ((mem % 1024) * 1000) >> 10;
+		rest = ((mem % 1024) * 10) >> 10;
 		mem = mem >> 10;
 	}
 
 	if (rest > 0)
-		asprintf(&buf, "%d.%03d%c", (int) mem, rest, prefix[i]);
+		asprintf(&buf, "%d.%d%c", (int) mem, rest, prefix[i]);
 	else if (mem > 0)
 		asprintf(&buf, "%d.0%c", (int) mem, prefix[i]);
 	else
@@ -80,48 +88,38 @@ int show_vx(xid_t xid)
 {
 	vx_stat_t statb;
 	vx_sched_info_t schedb;
-	vx_limit_stat_t limvm, limrss;
+	vx_limit_stat_t limnproc, limvm, limrss;
 	vx_uname_t unameb;
 
-	if (vx_stat(xid, &statb) == -1) {
-		log_perror("vx_stat(%d)", xid);
-		return FTW_STOP;
-	}
-
+	limnproc.id = RLIMIT_NPROC;
 	limvm.id = RLIMIT_AS;
-
-	if (vx_limit_stat(xid, &limvm) == -1) {
-		log_perror("vx_limit_stat(VM, %d)", xid);
-		return FTW_STOP;
-	}
-
 	limrss.id = RLIMIT_RSS;
-
-	if (vx_limit_stat(xid, &limrss) == -1) {
-		log_perror("vx_limit_stat(RSS, %d)", xid);
-		return FTW_STOP;
-	}
-
 	unameb.id = VHIN_CONTEXT;
-
-	if (vx_uname_get(xid, &unameb) == -1) {
-		log_perror("vx_uname_get(CONTEXT, %d)", xid);
-		return FTW_STOP;
-	}
-
 	schedb.cpu_id = 0;
 
-	if (vx_sched_info(xid, &schedb) == -1) {
-		log_perror("vx_sched_info(%d)", xid);
-		return FTW_STOP;
-	}
+	if (vx_stat(xid, &statb) == -1)
+		log_perror("vx_stat(%d)", xid);
 
-	printf("%-5u %-5u %7s %7s %11s %11s %11s %s%s\n",
-			xid, statb.tasks,
-			pretty_mem(limvm.value), pretty_mem(limrss.value),
+	else if (vx_limit_stat(xid, &limnproc) == -1)
+		log_perror("vx_limit_stat(NPROC, %d)", xid);
+
+	else if (vx_limit_stat(xid, &limvm) == -1)
+		log_perror("vx_limit_stat(VM, %d)", xid);
+
+	else if (vx_limit_stat(xid, &limrss) == -1)
+		log_perror("vx_limit_stat(RSS, %d)", xid);
+
+	else if (vx_uname_get(xid, &unameb) == -1)
+		log_perror("vx_uname_get(CONTEXT, %d)", xid);
+
+	else if (vx_sched_info(xid, &schedb) == -1)
+		log_perror("vx_sched_info(%d, 0)", xid);
+
+	printf("%-5u %-5u %5s %5s %3d %11s %11s %11s %s\n",
+			xid, (int) limnproc.value,
+			pretty_mem(limvm.value), pretty_mem(limrss.value), 0,
 			pretty_time(schedb.user_msec), pretty_time(schedb.sys_msec),
-			pretty_time(statb.uptime/1000000), unameb.value,
-			nr_cpus > 1 ? "[0]" : "");
+			pretty_time(statb.uptime/1000000), unameb.value);
 
 	if (nr_cpus < 2)
 		return FTW_SKIP_SUBTREE;
@@ -132,14 +130,14 @@ int show_vx(xid_t xid)
 		schedb.cpu_id = i;
 
 		if (vx_sched_info(xid, &schedb) == -1) {
-			log_perror("vx_sched_info(%d)", xid);
-			return FTW_STOP;
+			log_perror("vx_sched_info(%d, %d)", xid, i);
+			break;
 		}
 
-		printf("%-5u %-5s %7s %7s %11s %11s %11s %s[%d]\n",
-				xid, "", "", "",
+		printf("%-5u %-5s %5s %5s %3d %11s %11s %11s %s\n",
+				xid, "", "", "", i,
 				pretty_time(schedb.user_msec), pretty_time(schedb.sys_msec),
-				"", unameb.value, i);
+				"", unameb.value);
 	}
 
 	return FTW_SKIP_SUBTREE;
@@ -206,8 +204,8 @@ int main(int argc, char **argv)
 
 	nr_cpus = sysconf(_SC_NPROCESSORS_ONLN);
 
-	printf("%-5s %-5s %7s %7s %11s %11s %11s %s\n",
-			"XID", "TASKS", "VM", "RSS", "UTIME", "STIME", "UPTIME", "NAME");
+	printf("%-5s %-5s %5s %5s %3s %11s %11s %11s %s\n",
+			"XID", "TASKS", "VM", "RSS", "CPU", "UTIME", "STIME", "UPTIME", "NAME");
 
 	if (nftw("/proc/virtual", handle_file, 20, flags) == -1)
 		log_perror_and_die("nftw(/proc/virtual)");
