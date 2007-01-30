@@ -25,18 +25,18 @@
 
 const char *rcsid = "$Id$";
 
-const char *optstring = "+hvRcx:";
+const char *optstring = "+hvRcf:";
 
 void usage(int rc)
 {
-	printf("Usage: chxid [-hvRc] -x <xid> <path>*\n"
+	printf("Usage: setattr [-hvRc] -f <list> <path>\n"
 	       "\n"
 	       "Available Options:\n"
 	       "  -h         Display this help text\n"
 	       "  -v         Display version information\n"
 	       "  -R         Recurse through directories\n"
 	       "  -c         Cross filesystem mounts\n"
-	       "  -x <xid>   Context ID\n");
+	       "  -f <list>  Attribute list (see 'vlist -ix-attr')\n");
 	exit(rc);
 }
 
@@ -46,13 +46,9 @@ int handle_file(const char *fpath, const struct stat *sb,
 	ix_attr_t attr = {
 		.filename = fpath + ftwb->base,
 		.xid      = fstool_args->xid,
-		.flags    = IATTR_TAG,
-		.mask     = IATTR_TAG,
+		.flags    = fstool_args->flags,
+		.mask     = fstool_args->mask,
 	};
-
-	/* unset xid tagging if xid == 0 */
-	if (attr.xid == 0)
-		attr.flags = 0;
 
 	if (ix_attr_set(&attr) == -1) {
 		log_perror("ix_set_attr(%s)", fpath);

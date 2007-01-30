@@ -19,13 +19,14 @@
 #include <config.h>
 #endif
 
-#include <unistd.h>
 #include <stdlib.h>
-#include <stdio.h>
 #include <getopt.h>
 #include <ftw.h>
+
+#define _LUCID_PRINTF_MACROS
 #include <lucid/flist.h>
 #include <lucid/log.h>
+#include <lucid/printf.h>
 
 #include "fstool.h"
 
@@ -48,60 +49,66 @@ FLIST32_END
 int main(int argc, char **argv)
 {
 	int i, c, flags = FTW_MOUNT|FTW_PHYS|FTW_CHDIR|FTW_ACTIONRETVAL;
-	
+
 	fstool_args_t args = {
-		.recurse = false,
-		.dironly = false,
+		.recurse = 0,
+		.dironly = 0,
 		.xid     = ~(0U),
 		.flags   = 0,
 		.mask    = 0,
 	};
-	
+
 	log_options_t log_options = {
 		.ident  = argv[0],
 		.stderr = true,
 	};
-	
+
 	log_init(&log_options);
 	atexit(log_close);
-	
+
 	fstool_args = &args;
-	
+
 	while (1) {
 		c = getopt(argc, argv, optstring);
-		
+
 		if (c == -1)
 			break;
-		
+
 		switch (c) {
 			/* generic */
 			case 'h': usage(EXIT_SUCCESS);
 			case 'v': printf("%s\n", rcsid); exit(EXIT_SUCCESS); break;
-			
+
 			/* recurse options */
 			case 'R': args.recurse = true; break;
 			case 'c': flags       &= ~FTW_MOUNT; break;
 			case 'd': args.dironly = true; break;
-			
+
 			/* xid/flag options */
-			case 'x': args.xid = atoi(optarg); break;
-			
+			case 'x':
+				args.xid = atoi(optarg);
+
+				if (args.xid == 1 || args.xid > 65535)
+					log_error_and_die("invalid xid: %d", args.xid);
+
+				break;
+
 			case 'f':
 				if (flist32_from_str(optarg, iattr_list, &args.flags,
 							&args.mask, '~', ",") == -1)
 					log_perror_and_die("flist32_from_str");
-				
+
 				break;
-				
+
 			default: usage(EXIT_FAILURE);
 		}
 	}
-	
+
 	if (optind == argc)
 		nftw(".", handle_file, 20, flags);
-	
+
 	else for (i = optind; i < argc; i++)
 		nftw(argv[i], handle_file, 20, flags);
-	
+
 	return errcnt > 0 ? EXIT_FAILURE : EXIT_SUCCESS;
 }

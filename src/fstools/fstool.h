@@ -18,15 +18,14 @@
 #ifndef _FSTOOL_H
 #define _FSTOOL_H
 
-#include <stdbool.h>
 #include <stdint.h>
 #include <ftw.h>
 #include <vserver.h>
 #include <lucid/flist.h>
 
 typedef struct {
-	bool recurse;
-	bool dironly;
+	int recurse;
+	int dironly;
 	xid_t xid;
 	uint32_t flags;
 	uint32_t mask;

@@ -25,51 +25,62 @@
 
 const char *rcsid = "$Id$";
 
-const char *optstring = "+hvRcx:";
+const char *optstring = "hvRcd";
 
 void usage(int rc)
 {
-	printf("Usage: chxid [-hvRc] -x <xid> <path>*\n"
+	printf("Usage: showattr [-hvRcd] <path>*\n"
 	       "\n"
 	       "Available Options:\n"
 	       "  -h         Display this help text\n"
 	       "  -v         Display version information\n"
 	       "  -R         Recurse through directories\n"
-	       "  -c         Cross filesystem mounts\n"
-	       "  -x <xid>   Context ID\n");
+	       "  -c         Cross filesystems\n"
+	       "  -d         Display directory instead of contents\n");
 	exit(rc);
 }
 
 int handle_file(const char *fpath, const struct stat *sb,
                 int tflag, struct FTW *ftwb)
 {
-	ix_attr_t attr = {
-		.filename = fpath + ftwb->base,
-		.xid      = fstool_args->xid,
-		.flags    = IATTR_TAG,
-		.mask     = IATTR_TAG,
-	};
+	ix_attr_t attr;
 
-	/* unset xid tagging if xid == 0 */
-	if (attr.xid == 0)
-		attr.flags = 0;
+	attr.filename = fpath + ftwb->base;
 
-	if (ix_attr_set(&attr) == -1) {
-		log_perror("ix_set_attr(%s)", fpath);
-		errcnt++;
-	}
-
-	/* do not recurse (due to pre-order traversal, the first call of handle_file
-	   is always the directory pointed to by command line arguments) */
-	if (tflag == FTW_D && !fstool_args->recurse)
-		return FTW_STOP;
-
-	/* if the top-level directory can't be read it will stop anyway, any other
-	   directory that can't be read appears only if recurse is enabled */
 	if (tflag == FTW_DNR) {
 		log_error("could not read directory: %s", fpath);
 		errcnt++;
+		return FTW_CONTINUE;
 	}
+
+	if (ix_attr_get(&attr) == -1) {
+		log_error("ix_attr_get(%s): %m", fpath);
+		errcnt++;
+		return FTW_CONTINUE;
+	}
+
+	printf("%c%c%c%c%c%c %s%s",
+			(attr.mask  & IATTR_ADMIN     ?
+			(attr.flags & IATTR_ADMIN     ? 'A' : 'a') : '-'),
+			(attr.mask  & IATTR_WATCH     ?
+			(attr.flags & IATTR_WATCH     ? 'W' : 'w') : '-'),
+			(attr.mask  & IATTR_HIDE      ?
+			(attr.flags & IATTR_HIDE      ? 'H' : 'h') : '-'),
+			(attr.mask  & IATTR_BARRIER   ?
+			(attr.flags & IATTR_BARRIER   ? 'B' : 'b') : '-'),
+			(attr.mask  & IATTR_IUNLINK   ?
+			(attr.flags & IATTR_IUNLINK   ? 'U' : 'u') : '-'),
+			(attr.mask  & IATTR_IMMUTABLE ?
+			(attr.flags & IATTR_IMMUTABLE ? 'I' : 'i') : '-'),
+			fpath, tflag == FTW_D ? "/\n" : "\n");
+
+	/* show directory entry instead of its contents */
+	if (ftwb->level == 0 && fstool_args->dironly)
+		return FTW_STOP;
+
+	/* do not recurse but display directory entries */
+	if (tflag == FTW_D && ftwb->level > 0 && !fstool_args->recurse)
+		return FTW_SKIP_SUBTREE;
 
 	return FTW_CONTINUE;
 }
