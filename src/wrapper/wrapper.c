@@ -36,67 +36,67 @@ int default_wrapper(int argc, char **argv, char *proc, int needxid)
 	int c;
 	xid_t xid = 1;
 	char vdir[PATH_MAX];
-	
+
 	log_options_t log_options = {
 		.ident  = argv[0],
 		.stderr = true,
 	};
-	
+
 	log_init(&log_options);
 	atexit(log_close);
-	
+
 	while (1) {
 		c = getopt(argc, argv, "+hvx:");
-		
+
 		if (c == -1)
 			break;
-		
+
 		switch (c) {
 			case 'h':
 				printf("Usage: %s [-x <xid>] [-- <args>]\n", argv[0]);
 				exit(EXIT_SUCCESS);
-			
+
 			case 'v':
 				printf("%s\n", rcsid); exit(EXIT_SUCCESS);
 				break;
-			
+
 			case 'x':
 				xid = atoi(optarg);
 				break;
-			
+
 			default:
 				printf("Usage: %s [-x <xid>] [-- <args>]\n", argv[0]);
 				exit(EXIT_FAILURE);
 		}
 	}
-	
+
 	argv[--optind] = proc;
-	
+
 	if (needxid && (xid < 2 || xid > 65535))
 		log_error_and_die("invalid xid: %d", xid);
-	
+
 	if (xid > 1) {
 		if (vx_info(xid, NULL) == -1)
 			log_perror_and_die("vx_get_info");
-			
+
 		if (lookup_vdir(xid, vdir, PATH_MAX) == NULL)
 			log_error_and_die("could not find vserver dir");
-		
+
 		if (ns_enter(xid, 0) == -1)
 			log_perror_and_die("vx_enter_namespace");
-		
+
 		if (chroot_secure_chdir(vdir, "/") == -1)
 			log_perror_and_die("chroot_secure_chdir");
-		
+
 		if (chroot(".") == -1)
 			log_perror_and_die("chroot");
 	}
-	
+
 	if (vx_migrate(xid, NULL) == -1)
 		log_perror_and_die("vx_migrate");
-	
+
 	if (execvp(argv[optind], argv+optind) == -1)
 		log_perror_and_die("execvp");
-	
+
 	return EXIT_FAILURE;
 }

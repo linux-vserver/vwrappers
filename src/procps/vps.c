@@ -42,7 +42,7 @@ void parse_line(char *line, int n)
 	pid_t pid;
 	xid_t xid;
 	vx_uname_t uname;
-	
+
 	if (n == 0) {
 		if ((pid_pos = strstr(line, "  PID")) == 0) {
 			log_error("PID column not found, dumping ps output as-is");
@@ -50,48 +50,48 @@ void parse_line(char *line, int n)
 			error_mode = 1;
 			return;
 		}
-		
+
 		pid_start = pid_pos - line;
-		
+
 		printf("  XID NAME     %s\n", line);
 		return;
 	}
-	
+
 	else {
 		pid = atoi(line + pid_start);
-		
+
 		if (pid < 0) {
 			log_error("invalid pid %d on line %d", pid, n);
 			return;
 		}
-		
+
 		if ((xid = vx_task_xid(pid)) == -1) {
 			log_perror("could not get xid for pid %d", pid);
 			xid  = ~(0UL);
 			name = "ERR";
 		}
-		
+
 		else if (xid == 0)
 			name = "ADMIN";
-		
+
 		else if (xid == 1)
 			name = "WATCH";
-		
+
 		else {
 			uname.id = VHIN_CONTEXT;
-			
+
 			if (vx_uname_get(xid, &uname) == -1) {
 				log_perror("could not get name for xid %d", xid);
 				name = "ERR";
 			}
-			
+
 			else if (uname.value[0] == '/')
 				name = strrchr(uname.value, '/') + 1;
-			
+
 			else
 				name = uname.value;
 		}
-		
+
 		printf("%5d %-8.8s %s\n", xid, name, line);
 	}
 }
@@ -102,51 +102,51 @@ void pipe_ps(int argc, char **argv)
 	int p[2], fd, i, status, len;
 	pid_t pid;
 	char *line;
-	
+
 	pipe(p);
-	
+
 	switch ((pid = fork())) {
 	case -1:
 		log_perror_and_die("fork");
-	
+
 	case 0:
 		fd = open_read("/dev/null");
-		
+
 		dup2(fd,   0);
 		dup2(p[1], 1);
-		
+
 		close(p[0]);
 		close(p[1]);
 		close(fd);
-		
+
 		if (vx_migrate(1, NULL) == -1)
 			log_perror_and_die("vx_migrate");
-		
+
 		if (execvp(argv[0], argv) == -1)
 			log_perror_and_die("execvp");
-	
+
 	default:
 		close(p[1]);
-		
+
 		for (i = 0; ; i++) {
 			if ((len = str_readline(p[0], &line)) == -1)
 				log_perror_and_die("io_read_eol");
-			
+
 			if (!len)
 				break;
-			
+
 			if (error_mode)
 				printf("%s\n", line);
 			else
 				parse_line(line, i);
 		}
-		
+
 		close(p[0]);
-		
+
 		if (waitpid(pid, &status, 0) == -1)
 			log_perror_and_die("waitpid");
 	}
-	
+
 	exit(EXIT_SUCCESS);
 }
 
@@ -154,58 +154,58 @@ int main(int argc, char **argv)
 {
 	int c;
 	xid_t xid = 1;
-	
+
 	log_options_t log_options = {
 		.ident  = argv[0],
 		.stderr = true,
 	};
-	
+
 	log_init(&log_options);
 	atexit(log_close);
-	
+
 	while (1) {
 		c = getopt(argc, argv, "+hvx:");
-		
+
 		if (c == -1)
 			break;
-		
+
 		switch (c) {
 			case 'h':
 				printf("Usage: %s [-x <xid>] [-- <args>]\n", argv[0]);
 				exit(EXIT_SUCCESS);
-			
+
 			case 'v':
 				printf("%s\n", rcsid); exit(EXIT_SUCCESS);
 				break;
-			
+
 			case 'x':
 				xid = atoi(optarg);
 				break;
-			
+
 			default:
 				printf("Usage: %s [-x <xid>] [-- <args>]\n", argv[0]);
 				exit(EXIT_FAILURE);
 		}
 	}
-	
+
 	argv[--optind] = "/bin/ps";
-	
+
 	if (xid == 1)
 		pipe_ps(argc - optind, argv + optind);
-	
+
 	else if (xid == 0 && execvp(argv[optind], argv+optind) == -1)
 		log_perror_and_die("execvp");
-	
+
 	else if (xid > 1 && xid < 65536) {
 		if (vx_migrate(xid, NULL) == -1)
 			log_perror_and_die("vx_migrate");
-		
+
 		if (execvp(argv[optind], argv+optind) == -1)
 			log_perror_and_die("execvp");
 	}
-	
+
 	else
 		log_error_and_die("invalid xid: %d", xid);
-	
+
 	return EXIT_SUCCESS;
 }

@@ -38,21 +38,21 @@ void lookup_vdir_vhiname(xid_t xid)
 {
 	char *vserverdir;
 	vx_uname_t uname;
-	
+
 	uname.id = VHIN_CONTEXT;
-	
+
 	if (vx_uname_get(xid, &uname) == -1)
 		return;
-	
+
 	/* util-vserver format */
 	else if (uname.value[0] == '/')
 		asprintf(&_vdir, "%s/vdir", uname.value);
-	
+
 	/* vcd format */
 	else {
 		vserverdir = strchr(uname.value, ':');
 		*vserverdir++ = '\0';
-		
+
 		asprintf(&_vdir, "%s/%s", vserverdir, uname.value);
 	}
 }
@@ -64,56 +64,56 @@ void lookup_vdir_initpid(xid_t xid)
 	pid_t pid;
 	char procroot[PATH_MAX], buf[PATH_MAX];
 	vx_info_t info;
-	
+
 	pipe(p);
-	
+
 	switch ((pid = fork())) {
 	case -1:
 		close(p[0]);
 		close(p[1]);
 		return;
-	
+
 	case 0:
 		fd = open_read("/dev/null");
-		
+
 		dup2(fd,   0);
 		dup2(p[1], 1);
-		
+
 		close(p[0]);
 		close(p[1]);
 		close(fd);
-		
+
 		if (vx_info(xid, &info) == -1)
 			exit(EXIT_FAILURE);
-		
+
 		if (info.initpid < 2)
 			exit(EXIT_FAILURE);
-		
+
 		snprintf(procroot, PATH_MAX, "/proc/%d/root", info.initpid);
-		
+
 		if (vx_migrate(1, NULL) == -1)
 			exit(EXIT_FAILURE);
-		
+
 		bzero(buf, PATH_MAX);
-		
+
 		if (readlink(procroot, buf, PATH_MAX - 1) == -1)
 			exit(EXIT_FAILURE);
-		
+
 		printf("%s", buf);
-		
+
 		exit(EXIT_SUCCESS);
-	
+
 	default:
 		close(p[1]);
 		str_readline(p[0], &_vdir);
 		close(p[0]);
-		
+
 		if (waitpid(pid, &status, 0) == -1)
 			return;
-		
+
 		if (WIFEXITED(status) && WEXITSTATUS(status) != EXIT_SUCCESS)
 			return;
-		
+
 		if (WIFSIGNALED(status))
 			return;
 	}
@@ -128,17 +128,17 @@ void lookup_vdir_allpid(xid_t xid)
 char *lookup_vdir(xid_t xid, char *vdir, size_t len)
 {
 	lookup_vdir_vhiname(xid);
-	
+
 	if (!_vdir)
 		lookup_vdir_initpid(xid);
-	
+
 	if (!_vdir)
 		lookup_vdir_allpid(xid);
-	
+
 	if (_vdir) {
 		strncpy(vdir, _vdir, len);
 		return vdir;
 	}
-	
+
 	return NULL;
 }

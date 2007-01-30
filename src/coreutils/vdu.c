@@ -106,32 +106,32 @@ int handle_file(const char *fpath, const struct stat *sb,
                 int typeflag, struct FTW *ftwb)
 {
 	ix_attr_t attr;
-	
+
 	attr.filename = fpath + ftwb->base;
-	
+
 	if (ix_attr_get(&attr) == -1) {
 		log_perror("ix_get_attr(%s)", fpath);
 		errcnt++;
 		return FTW_STOP;
 	}
-	
+
 	/* TODO: bail out if no IATTR_TAG? */
 	if (!(attr.mask & IATTR_TAG))
 		return FTW_CONTINUE;
-	
+
 	if (sb->st_nlink == 1 || tfind(&sb->st_ino, &inotable, inocmp) == NULL) {
 		if (attr.xid == xid) {
 			used_blocks += sb->st_blocks;
 			used_inodes += 1;
 		}
-		
+
 		if (tsearch(&sb->st_ino, &inotable, inocmp) == NULL) {
 			log_perror("tsearch(%u)", sb->st_ino);
 			errcnt++;
 			return FTW_STOP;
 		}
 	}
-	
+
 	return FTW_CONTINUE;
 }
 
@@ -139,39 +139,39 @@ static
 void count_path(const char *path, int flags, int bs)
 {
 	int olderrcnt = errcnt;
-	
+
 	used_blocks = used_inodes = 0;
-	
+
 	if (inotable)
 		tdestroy(inotable, inofree);
-	
+
 	inotable = NULL;
-	
+
 	nftw(path, handle_file, 20, flags);
-	
+
 	printf("%s", path);
-	
+
 	if (errcnt > olderrcnt)
 		printf(" ERR");
-	
+
 	else {
 		if (do_hr)
 			printf(" %s", do_human_readable (used_blocks * 512 / bs));
 
 		else if (do_space)
 			printf(" %" PRIu64, used_blocks * 512 / bs);
-		
+
 		if (do_inode)
 			printf(" %" PRIu64, used_inodes);
 	}
-	
+
 	printf("\n");
 }
 
 int main (int argc, char **argv)
 {
 	int i, c, bs = 1024, flags = FTW_MOUNT|FTW_PHYS|FTW_CHDIR|FTW_ACTIONRETVAL;
-	
+
 	log_options_t log_options = {
 		.ident  = argv[0],
 		.stderr = true,
@@ -179,41 +179,41 @@ int main (int argc, char **argv)
 
 	log_init(&log_options);
 	atexit(log_close);
-	
+
 	while (1) {
 		c = getopt(argc, argv, "+hvcsirb:x:");
-		
+
 		if (c == -1)
 			break;
-		
+
 		switch (c) {
 			case 'h': usage(EXIT_SUCCESS);
 			case 'v': printf("%s\n", rcsid); exit(EXIT_SUCCESS); break;
-			
+
 			case 'c': flags &= ~FTW_MOUNT; break;
-			
+
 			case 's': do_space = true; break;
 			case 'i': do_inode = true; break;
 			case 'r': do_hr = true; break;
-			
+
 			case 'b': bs  = atoi(optarg); break;
 			case 'x': xid = atoi(optarg); break;
-			
+
 			default: usage(EXIT_FAILURE);
 		}
 	}
-	
+
 	if (xid == 1 || xid > 65535)
 		log_error_and_die("invalid xid: %d", xid);
-	
+
 	if (!do_space && !do_inode)
 		log_error_and_die("no action specified. use -s and/or -i");
-	
+
 	if (optind == argc)
 		count_path(".", flags, bs);
-	
+
 	else for (i = optind; i < argc; i++)
 		count_path(argv[i], flags, bs);
-	
+
 	return errcnt > 0 ? EXIT_FAILURE : EXIT_SUCCESS;
 }
