@@ -116,11 +116,11 @@ int show_vx(xid_t xid)
 		return FTW_STOP;
 	}
 
-	printf("%-5d %-5d %6d %6d %11s %11s %11s %s%s\n",
+	printf("%-5u %-5u %6s %6s %11s %11s %11s %s%s\n",
 			xid, statb.tasks,
 			pretty_mem(limvm.value), pretty_mem(limrss.value),
 			pretty_time(schedb.user_msec), pretty_time(schedb.sys_msec),
-			pretty_time(statb.uptime), unameb.value,
+			pretty_time(statb.uptime/1000000), unameb.value,
 			nr_cpus > 1 ? "[0]" : "");
 
 	if (nr_cpus < 2)
@@ -136,7 +136,7 @@ int show_vx(xid_t xid)
 			return FTW_STOP;
 		}
 
-		printf("%-5s %-5s %6s %6s %11s %11s %11s %s[%d]\n",
+		printf("%-5u %-5s %6s %6s %11s %11s %11s %s[%d]\n",
 				xid, "", "", "",
 				pretty_time(schedb.user_msec), pretty_time(schedb.sys_msec),
 				"", unameb.value, i);
@@ -213,7 +213,7 @@ int main(int argc, char **argv)
 		log_perror_and_die("nftw(/proc/virtual)");
 
 	if (nr_running < 1)
-		printf("no running contexts found ...");
+		printf("no running contexts found ...\n");
 
 	return EXIT_SUCCESS;
 }
