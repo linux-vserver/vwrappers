@@ -67,7 +67,7 @@ void parse_line(char *line, int n)
 
 		if ((xid = vx_task_xid(pid)) == -1) {
 			log_perror("could not get xid for pid %d", pid);
-			xid  = ~(0UL);
+			xid  = -1;
 			name = "ERR";
 		}
 
@@ -86,7 +86,7 @@ void parse_line(char *line, int n)
 			}
 
 			else {
-				char *p = str_chr(uname.value, ':', str_len(uname.value);
+				char *p = str_chr(uname.value, ':', str_len(uname.value));
 
 				if (p)
 					*p = '\0';

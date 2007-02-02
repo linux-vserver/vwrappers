@@ -23,6 +23,7 @@
 #define _LUCID_PRINTF_MACROS
 #include <lucid/log.h>
 #include <lucid/printf.h>
+#include <lucid/str.h>
 
 static const char *rcsid = "$Id$";
 
@@ -112,7 +113,7 @@ void show_vx(xid_t xid)
 		log_perror("vx_sched_info(%d, 0)", xid);
 
 	else {
-		char *p = str_chr(unameb.value, ':', str_len(unameb.value);
+		char *p = str_chr(unameb.value, ':', str_len(unameb.value));
 
 		if (p)
 			*p = '\0';
