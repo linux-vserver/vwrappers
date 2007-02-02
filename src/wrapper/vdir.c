@@ -24,7 +24,6 @@
 
 char *lookup_vdir(xid_t xid, char *vdir, size_t len)
 {
-	char *p;
 	vx_uname_t uname;
 
 	uname.id = VHIN_CONTEXT;
@@ -32,10 +31,11 @@ char *lookup_vdir(xid_t xid, char *vdir, size_t len)
 	if (vx_uname_get(xid, &uname) == -1)
 		return NULL;
 
-	else
-		p = str_chr(uname.value, ':', str_len(uname.value)) + 1;
-	
+	char *p = str_chr(uname.value, ':', str_len(uname.value));
+
 	if (p) {
+		p++;
+
 		if (str_len(p) < len)
 			len = str_len(p);
 

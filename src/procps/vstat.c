@@ -111,11 +111,18 @@ void show_vx(xid_t xid)
 	else if (vx_sched_info(xid, &schedb) == -1)
 		log_perror("vx_sched_info(%d, 0)", xid);
 
-	else printf("%-5u %-5u %5s %5s %3d %11s %11s %11s %s\n",
-			xid, (int) limnproc.value,
-			pretty_mem(limvm.value), pretty_mem(limrss.value), 0,
-			pretty_time(schedb.user_msec), pretty_time(schedb.sys_msec),
-			pretty_time(statb.uptime/1000000), unameb.value);
+	else {
+		char *p = str_chr(unameb.value, ':', str_len(unameb.value);
+
+		if (p)
+			*p = '\0';
+
+		printf("%-5u %-5u %5s %5s %3d %11s %11s %11s %s\n",
+				xid, (int) limnproc.value,
+				pretty_mem(limvm.value), pretty_mem(limrss.value), 0,
+				pretty_time(schedb.user_msec), pretty_time(schedb.sys_msec),
+				pretty_time(statb.uptime/1000000), unameb.value);
+	}
 
 	if (nr_cpus < 2)
 		return;

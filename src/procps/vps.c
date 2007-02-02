@@ -85,8 +85,14 @@ void parse_line(char *line, int n)
 				name = "ERR";
 			}
 
-			else
+			else {
+				char *p = str_chr(uname.value, ':', str_len(uname.value);
+
+				if (p)
+					*p = '\0';
+
 				name = uname.value;
+			}
 		}
 
 		printf("%5d %-8.8s %s\n", xid, name, line);
