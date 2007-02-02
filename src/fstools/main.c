@@ -19,8 +19,6 @@
 #include <getopt.h>
 #include <ftw.h>
 
-#define _LUCID_PRINTF_MACROS
-#define _LUCID_SCANF_MACROS
 #include <lucid/flist.h>
 #include <lucid/log.h>
 #include <lucid/printf.h>

@@ -101,6 +101,9 @@ AC_CHECK_LIB(ucid, str_path_concat,
 
 AC_SUBST(LUCID_LIBS)
 
+AC_DEFINE(_LUCID_PRINTF_MACROS)
+AC_DEFINE(_LUCID_SCANF_MACROS)
+
 # Checks for header files.
 
 # Checks for typedefs, structures, and compiler characteristics.

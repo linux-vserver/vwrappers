@@ -22,8 +22,6 @@
 #include <vserver.h>
 #include <sys/wait.h>
 
-#define _LUCID_PRINTF_MACROS
-#define _LUCID_SCANF_MACROS
 #include <lucid/log.h>
 #include <lucid/open.h>
 #include <lucid/printf.h>

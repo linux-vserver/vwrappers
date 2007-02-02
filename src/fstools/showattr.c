@@ -16,7 +16,6 @@
 
 #include <stdlib.h>
 
-#define _LUCID_PRINTF_MACROS
 #include <lucid/log.h>
 #include <lucid/printf.h>
 
