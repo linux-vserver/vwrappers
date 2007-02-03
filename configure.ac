@@ -131,6 +131,7 @@ AC_CONFIG_COMMANDS_PRE([SUMMARY="$PACKAGE_STRING configured successfully:
 
 # Output
 AC_CONFIG_FILES([Makefile
+                 scripts/Makefile
                  src/coreutils/Makefile
                  src/fstools/Makefile
                  src/procps/Makefile
