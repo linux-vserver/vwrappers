@@ -77,9 +77,9 @@ int main(int argc, char **argv)
 			case 'v': printf("%s\n", rcsid); exit(EXIT_SUCCESS); break;
 
 			/* recurse options */
-			case 'R': args.recurse = true; break;
+			case 'R': args.recurse = 1; break;
 			case 'c': flags       &= ~FTW_MOUNT; break;
-			case 'd': args.dironly = true; break;
+			case 'd': args.dironly = 1; break;
 
 			/* xid/flag options */
 			case 'x':

@@ -34,7 +34,7 @@ static void *inotable = NULL;
 
 static int errcnt = 0;
 
-static xid_t xid = ~(0UL);
+static xid_t xid = -1;
 
 static int do_space = 0;
 static int do_inode = 0;
