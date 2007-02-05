@@ -142,30 +142,36 @@ void show_vx(xid_t xid)
 	}
 }
 
+static
+void usage(void)
+{
+	printf("Usage: vstat takes no arguments\n"
+			"\n"
+			"The following information is shown:\n"
+			"  XID    - Context ID\n"
+			"  TASKS  - Number of processes\n"
+			"  VM     - Number of virtual memory pages\n"
+			"  RSS    - Number of memory pages locked into RAM\n"
+			"  CPU    - Processor ID\n"
+			"  UTIME  - User-mode time accumulated\n"
+			"  STIME  - Kernel-mode time accumulated\n"
+			"  UPTIME - Context lifetime\n"
+			"  NAME   - Context name\n"
+			"\n"
+			"%s\n", rcsid);
+	exit(EXIT_FAILURE);
+}
+
 int main(int argc, char **argv)
 {
 	log_options_t log_options = {
-		.ident  = argv[0],
-		.stderr = true,
+		.log_ident = argv[0],
+		.log_dest  = LOGD_STDERR,
+		.log_opts  = LOGO_PRIO|LOGO_IDENT,
 	};
 
-	if (argc > 1) {
-		printf("Usage: vstat takes no arguments\n"
-		       "\n"
-		       "The following information is shown:\n"
-		       "  XID    - Context ID\n"
-		       "  TASKS  - Number of processes\n"
-		       "  VM     - Number of virtual memory pages\n"
-		       "  RSS    - Number of memory pages locked into RAM\n"
-		       "  CPU    - Processor ID\n"
-		       "  UTIME  - User-mode time accumulated\n"
-		       "  STIME  - Kernel-mode time accumulated\n"
-		       "  UPTIME - Context lifetime\n"
-		       "  NAME   - Context name\n"
-		       "\n"
-		       "%s\n", rcsid);
-		exit(EXIT_FAILURE);
-	}
+	if (argc > 1)
+		usage();
 
 	log_init(&log_options);
 	atexit(log_close);

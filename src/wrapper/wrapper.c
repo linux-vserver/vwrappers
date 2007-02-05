@@ -35,8 +35,9 @@ int default_wrapper(int argc, char **argv, char *proc, int needxid)
 	char vdir[64];
 
 	log_options_t log_options = {
-		.ident  = argv[0],
-		.stderr = true,
+		.log_ident = argv[0],
+		.log_dest  = LOGD_STDERR,
+		.log_opts  = LOGO_PRIO|LOGO_IDENT,
 	};
 
 	log_init(&log_options);

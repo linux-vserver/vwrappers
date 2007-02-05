@@ -55,8 +55,9 @@ int main(int argc, char **argv)
 	};
 
 	log_options_t log_options = {
-		.ident  = argv[0],
-		.stderr = true,
+		.log_ident = argv[0],
+		.log_dest  = LOGD_STDERR,
+		.log_opts  = LOGO_PRIO|LOGO_IDENT,
 	};
 
 	log_init(&log_options);
