@@ -25,6 +25,7 @@
 typedef struct {
 	int recurse;
 	int dironly;
+	int unified;
 	xid_t xid;
 	uint32_t flags;
 	uint32_t mask;

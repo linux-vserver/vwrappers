@@ -49,6 +49,7 @@ int main(int argc, char **argv)
 	fstool_args_t args = {
 		.recurse = 0,
 		.dironly = 0,
+		.unified = 0,
 		.xid     = ~(0U),
 		.flags   = 0,
 		.mask    = 0,
@@ -82,6 +83,7 @@ int main(int argc, char **argv)
 			case 'd': args.dironly = 1; break;
 
 			/* xid/flag options */
+			case 'u': args.unified = 1; break;
 			case 'x':
 				sscanf(optarg, "%" SCNu32, &args.xid);
 
