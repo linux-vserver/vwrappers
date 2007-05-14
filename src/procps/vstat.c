@@ -117,7 +117,7 @@ void show_vx(xid_t xid)
 		if (p)
 			*p = '\0';
 
-		printf("%-5u %-5u %6s %6s %3d %11s %11s %11s %s\n",
+		printf("%-5u %-5u %-6s %-6s %-3d %-11s %-11s %-11s %s\n",
 				xid, (int) limnproc.value,
 				pretty_mem(limvm.value), pretty_mem(limrss.value), 0,
 				pretty_time(schedb.user_msec), pretty_time(schedb.sys_msec),
@@ -135,7 +135,7 @@ void show_vx(xid_t xid)
 		if (vx_sched_info(xid, &schedb) == -1)
 			log_perror("vx_sched_info(%d, %d)", xid, i);
 
-		else printf("%-5u %-5s %6s %6s %3d %11s %11s %11s %s\n",
+		else printf("%-5u %-5s %-6s %-6s %-3d %-11s %-11s %-11s %s\n",
 				xid, "", "", "", i,
 				pretty_time(schedb.user_msec), pretty_time(schedb.sys_msec),
 				"", unameb.value);
@@ -178,7 +178,7 @@ int main(int argc, char **argv)
 
 	nr_cpus = sysconf(_SC_NPROCESSORS_ONLN);
 
-	printf("%-5s %-5s %6s %6s %3s %11s %11s %11s %s\n",
+	printf("%-5s %-5s %-6s %-6s %-3s %-11s %-11s %-11s %s\n",
 			"XID", "NPROC", "VM", "RSS", "CPU", "UTIME", "STIME", "UPTIME", "NAME");
 
 	int i;
