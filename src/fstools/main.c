@@ -94,7 +94,7 @@ int main(int argc, char **argv)
 
 			case 'f':
 				if (flist32_from_str(optarg, iattr_list, &args.flags,
-							&args.mask, '~', ",") == -1)
+						&args.mask, '~', ",") == -1)
 					log_perror_and_die("flist32_from_str");
 
 				break;
@@ -104,10 +104,10 @@ int main(int argc, char **argv)
 	}
 
 	if (optind == argc)
-		nftw(".", handle_file, 20, flags);
+		nftw(".", handle_file, 50, flags);
 
 	else for (i = optind; i < argc; i++)
-		nftw(argv[i], handle_file, 20, flags);
+		nftw(argv[i], handle_file, 50, flags);
 
 	return errcnt > 0 ? EXIT_FAILURE : EXIT_SUCCESS;
 }

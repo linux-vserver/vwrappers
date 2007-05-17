@@ -28,18 +28,18 @@ const char *optstring = "hvRcf:";
 void usage(int rc)
 {
 	printf("Usage: setattr [-hvRc] -f <list> <path>\n"
-	       "\n"
-	       "Available Options:\n"
-	       "  -h         Display this help text\n"
-	       "  -v         Display version information\n"
-	       "  -R         Recurse through directories\n"
-	       "  -c         Cross filesystem mounts\n"
-	       "  -f <list>  Attribute list (see 'vlist -ix-attr')\n");
+			"\n"
+			"Available Options:\n"
+			"  -h         Display this help text\n"
+			"  -v         Display version information\n"
+			"  -R         Recurse through directories\n"
+			"  -c         Cross filesystem mounts\n"
+			"  -f <list>  Attribute list (see 'vlist -ix-attr')\n");
 	exit(rc);
 }
 
 int handle_file(const char *fpath, const struct stat *sb,
-                int tflag, struct FTW *ftwb)
+		int tflag, struct FTW *ftwb)
 {
 	ix_attr_t attr = {
 		.filename = fpath + ftwb->base,
@@ -49,7 +49,7 @@ int handle_file(const char *fpath, const struct stat *sb,
 	};
 
 	if (ix_attr_set(&attr) == -1) {
-		log_perror("ix_set_attr(%s)", fpath);
+		log_perror("ix_attr_set(%s)", fpath);
 		errcnt++;
 	}
 

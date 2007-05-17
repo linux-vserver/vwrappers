@@ -28,18 +28,18 @@ const char *optstring = "hvRcd";
 void usage(int rc)
 {
 	printf("Usage: lsxid [-hvRcd] <path>*\n"
-	       "\n"
-	       "Available Options:\n"
-	       "  -h         Display this help text\n"
-	       "  -v         Display version information\n"
-	       "  -R         Recurse through directories\n"
-	       "  -c         Cross filesystems\n"
-	       "  -d         Display directory instead of contents\n");
+			"\n"
+			"Available Options:\n"
+			"  -h         Display this help text\n"
+			"  -v         Display version information\n"
+			"  -R         Recurse through directories\n"
+			"  -c         Cross filesystems\n"
+			"  -d         Display directory instead of contents\n");
 	exit(rc);
 }
 
 int handle_file(const char *fpath, const struct stat *sb,
-                int tflag, struct FTW *ftwb)
+		int tflag, struct FTW *ftwb)
 {
 	ix_attr_t attr;
 

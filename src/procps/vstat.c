@@ -62,7 +62,7 @@ char *pretty_mem(uint64_t mem)
 
 	int i, rest = 0;
 
-	mem *= getpagesize() >> 10;
+	mem = (mem * (uint64_t) getpagesize()) / 1024;
 
 	for (i = 0; mem >= 1024; i++) {
 		rest = ((mem % 1024) * 10) >> 10;
@@ -100,7 +100,7 @@ void show_vx(xid_t xid)
 		log_perror("vx_limit_stat(NPROC, %d)", xid);
 
 	else if (vx_limit_stat(xid, &limvm) == -1)
-		log_perror("vx_limit_stat(VM, %d)", xid);
+		log_perror("vx_limit_stat(AS, %d)", xid);
 
 	else if (vx_limit_stat(xid, &limrss) == -1)
 		log_perror("vx_limit_stat(RSS, %d)", xid);

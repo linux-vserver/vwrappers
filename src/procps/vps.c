@@ -100,9 +100,9 @@ void parse_line(char *line, int n)
 static
 void pipe_ps(int argc, char **argv)
 {
+	char *line;
 	int p[2], fd, i, status, len;
 	pid_t pid;
-	char *line;
 
 	pipe(p);
 

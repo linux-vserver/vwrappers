@@ -20,6 +20,7 @@
 #include <stdint.h>
 #include <ftw.h>
 #include <vserver.h>
+
 #include <lucid/flist.h>
 
 typedef struct {
@@ -40,6 +41,6 @@ extern int   errcnt;
 void usage(int rc);
 
 int handle_file(const char *fpath, const struct stat *sb,
-                int typeflag, struct FTW *ftwbuf);
+		int typeflag, struct FTW *ftwbuf);
 
 #endif

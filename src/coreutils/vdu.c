@@ -46,17 +46,17 @@ static uint64_t used_inodes = 0;
 static
 void usage(int rc)
 {
-	printf("Usage: vdu [-hvcsi] [-b <size>] -x <xid> <path>*\n"
-	       "\n"
-	       "Available options:\n"
-	       "  -h         Display this help text\n"
-	       "  -v         Display version information\n"
-	       "  -c         Cross filesystem mounts\n"
-	       "  -s         Calculate used space\n"
-	       "  -i         Calculate used inodes\n"
-	       "  -r         Calculate used space in  human readable format\n"
-	       "  -b <size>  Blocksize (default: 1024)\n"
-	       "  -x <xid>   Context ID\n");
+	printf("Usage: vdu [-hvcsir] [-b <size>] -x <xid> <path>*\n"
+			"\n"
+			"Available options:\n"
+			"  -h         Display this help text\n"
+			"  -v         Display version information\n"
+			"  -c         Cross filesystem mounts\n"
+			"  -s         Calculate used space\n"
+			"  -i         Calculate used inodes\n"
+			"  -r         Show used space/inodes in human readable format\n"
+			"  -b <size>  Blocksize (default: 1024)\n"
+			"  -x <xid>   Context ID\n");
 	exit(rc);
 }
 
@@ -122,7 +122,7 @@ void inofree(void *nodep)
 
 static
 int handle_file(const char *fpath, const struct stat *sb,
-                int typeflag, struct FTW *ftwb)
+		int typeflag, struct FTW *ftwb)
 {
 	ix_attr_t attr;
 
@@ -165,7 +165,7 @@ void count_path(const char *path, int flags, int bs)
 
 	inotable = NULL;
 
-	nftw(path, handle_file, 20, flags);
+	nftw(path, handle_file, 50, flags);
 
 	printf("%s", path);
 
@@ -174,7 +174,7 @@ void count_path(const char *path, int flags, int bs)
 
 	else if (do_hr) {
 		if (do_space)
-			printf(" %s", pretty_mem(used_blocks / 2));
+			printf(" %s", pretty_mem(used_blocks * 512 / bs));
 		if (do_inode)
 			printf(" %s", pretty_ino(used_inodes));
 	}
@@ -219,17 +219,20 @@ int main (int argc, char **argv)
 			case 'r': do_hr = 1; break;
 
 			case 'b': sscanf(optarg, "%d", &bs); break;
-			case 'x': sscanf(optarg, "%" SCNu32, &xid); break;
+			case 'x':
+				sscanf(optarg, "%" SCNu32, &xid);
+
+				if (xid == 1 || xid > 65535)
+					log_error_and_die("invalid xid: %d", xid);
+
+				break;
 
 			default: usage(EXIT_FAILURE);
 		}
 	}
 
-	if (xid == 1 || xid > 65535)
-		log_error_and_die("invalid xid: %d", xid);
-
 	if (!do_space && !do_inode)
-		log_error_and_die("no action specified. use -s and/or -i");
+		log_error_and_die("no action specified: use -s and/or -i");
 
 	if (optind == argc)
 		count_path(".", flags, bs);
